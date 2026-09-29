@@ -17,11 +17,11 @@
 
 ## Phase 0：项目初始化
 
-- [ ] 0.1 初始化 Next.js 15 + TypeScript + Tailwind 项目骨架
+- [x] 0.1 初始化 Next.js 15 + TypeScript + Tailwind 项目骨架
 - [ ] 0.2 安装 shadcn/ui，配置基础主题
-- [ ] 0.3 初始化 git 仓库，首次 commit
-- [ ] 0.4 配置 Prisma，连接 Supabase PostgreSQL（本地先用 SQLite 占位可跑通）
-- [ ] 0.5 配置 ESLint + Prettier
+- [x] 0.3 初始化 git 仓库，首次 commit
+- [ ] 0.4 配置 Prisma，连接数据库（本地先用 SQLite 占位可跑通）
+- [x] 0.5 配置 ESLint + Prettier
 - [ ] 0.6 搭建目录结构（按 ARCHITECTURE.md 的目录设计）
 
 ## Phase 1：数据层（对应 ARCHITECTURE.md 数据库设计）
@@ -126,10 +126,13 @@
 
 ## 当前进度
 
-**当前任务：0.1 初始化 Next.js 15 + TypeScript + Tailwind 项目骨架**
+**当前任务：0.2 安装 shadcn/ui，配置基础主题**
+
+**已完成：** 0.1、0.3、0.5（首次 commit `c049ed2`）
 
 ## 变更记录
 
 | 日期 | 变更 |
 |------|------|
 | 2026-09-29 | 初始生成，共 11 个 Phase，60 个任务项 |
+| 2026-09-29 | 完成 0.1/0.3/0.5；Next.js 15.5.26 构建通过；git 首次 commit |
