@@ -1,0 +1,358 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────
+// 用户 & 房屋
+// ──────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  phone     String?  @unique
+  name      String
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members Member[]
+}
+
+model House {
+  id                  String   @id @default(cuid())
+  name                String
+  address             String?
+  roomCount           Int      @default(3)
+  billDay             Int      @default(1)
+  cleaningCycle       String   @default("weekly") // weekly | biweekly | monthly
+  defaultSplitMethod  String   @default("equal")  // equal | by_room | by_head | custom
+  inviteCode          String   @unique
+  createdById         String
+  createdAt           DateTime @default(now())
+
+  members       Member[]
+  cleaningZones CleaningZone[]
+  sharedItems   SharedItem[]
+  utilityBills  UtilityBill[]
+  repairOrders  RepairOrder[]
+  settlements   Settlement[]
+  monthlyBills  MonthlyBill[]
+  announcements Announcement[]
+  visitors      Visitor[]
+  houseRules    HouseRule[]
+  notifications Notification[]
+  activityFeed  ActivityFeed[]
+}
+
+model Member {
+  id          String    @id @default(cuid())
+  houseId     String
+  userId      String
+  roomNumber  String?
+  role        String    @default("member") // owner | admin | member
+  joinDate    DateTime
+  leaveDate   DateTime?
+  createdAt   DateTime  @default(now())
+
+  house  House @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  user   User  @relation(fields: [userId], references: [id])
+
+  cleaningAssignments   CleaningAssignment[]
+  rotationOrders        CleaningRotationOrder[]
+  purchasedItems        SharedItem[]
+  recordedBills         UtilityBill[]
+  absentPeriods         AbsentPeriod[]
+  reportedRepairs       RepairOrder[]            @relation("reporter")
+  claimedRepairs        RepairOrder[]            @relation("claimer")
+  outgoingSettlements   Settlement[]             @relation("from")
+  incomingSettlements   Settlement[]             @relation("to")
+  billSplits            BillSplit[]
+  announcements         Announcement[]
+  hostedVisitors        Visitor[]
+  notifications         Notification[]
+  activityFeed          ActivityFeed[]
+
+  @@unique([houseId, userId])
+}
+
+// ──────────────────────────────────
+// 清洁模块
+// ──────────────────────────────────
+
+model CleaningZone {
+  id                String  @id @default(cuid())
+  houseId           String
+  name              String
+  icon              String?
+  difficultyWeight  Int     @default(1)
+  frequency         String  @default("weekly") // daily | weekly | biweekly | monthly
+  isActive          Boolean @default(true)
+  sortOrder         Int     @default(0)
+  createdAt         DateTime @default(now())
+
+  house       House  @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  tasks       CleaningTask[]
+  assignments CleaningAssignment[]
+  rotations   CleaningRotationOrder[]
+}
+
+model CleaningTask {
+  id       String  @id @default(cuid())
+  zoneId   String
+  name     String
+  isActive Boolean @default(true)
+
+  zone CleaningZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+}
+
+model CleaningAssignment {
+  id          String    @id @default(cuid())
+  zoneId      String
+  memberId    String
+  dueDate     DateTime
+  status      String    @default("pending") // pending | completed | overdue | skipped
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+  photos      String    @default("[]") // JSON array of URLs
+  confirmedBy String    @default("[]") // JSON array of member IDs
+  skipReason  String?
+
+  zone   CleaningZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  member Member       @relation(fields: [memberId], references: [id])
+}
+
+model CleaningRotationOrder {
+  id          String @id @default(cuid())
+  zoneId      String
+  memberId    String
+  orderIndex  Int
+
+  zone   CleaningZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  member Member       @relation(fields: [memberId], references: [id])
+
+  @@unique([zoneId, memberId])
+}
+
+// ──────────────────────────────────
+// 公共物品
+// ──────────────────────────────────
+
+model SharedItem {
+  id           String   @id @default(cuid())
+  houseId      String
+  type         String   // consumable | durable
+  name         String
+  purchaserId  String
+  price        Float
+  purchaseDate DateTime
+  photoUrl     String?
+  ownership    String   @default("shared") // shared | personal
+  splitMethod  String   @default("equal")  // equal | by_room | purchaser_only | custom
+  lowStock     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  house     House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  purchaser Member   @relation(fields: [purchaserId], references: [id])
+  splits    BillSplit[]
+  repairs   RepairOrder[]
+}
+
+// ──────────────────────────────────
+// 费用分摊
+// ──────────────────────────────────
+
+model UtilityBill {
+  id             String   @id @default(cuid())
+  houseId        String
+  type           String   // electric | water | gas | internet | property | other
+  period         String   // "2026-09"
+  mode           String   // reading | amount
+  readingBefore  Float?
+  readingAfter   Float?
+  unitPrice      Float?
+  totalAmount    Float
+  photoUrl       String?
+  splitMethod    String   @default("equal")
+  recordedById   String
+  createdAt      DateTime @default(now())
+
+  house      House      @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  recordedBy Member     @relation(fields: [recordedById], references: [id])
+  splits     BillSplit[]
+
+  @@unique([houseId, type, period])
+}
+
+model BillSplit {
+  id              String  @id @default(cuid())
+  billId          String?
+  sharedItemId    String?
+  repairOrderId   String?
+  memberId        String
+  amount          Float
+  daysPresent     Int?
+  isExempt        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  bill        UtilityBill? @relation(fields: [billId], references: [id], onDelete: Cascade)
+  sharedItem  SharedItem?  @relation(fields: [sharedItemId], references: [id], onDelete: Cascade)
+  repairOrder RepairOrder? @relation(fields: [repairOrderId], references: [id], onDelete: Cascade)
+  member      Member       @relation(fields: [memberId], references: [id])
+}
+
+model AbsentPeriod {
+  id        String   @id @default(cuid())
+  memberId  String
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────
+// 维修模块
+// ──────────────────────────────────
+
+model RepairOrder {
+  id              String    @id @default(cuid())
+  houseId         String
+  title           String
+  description     String?
+  photos          String    @default("[]") // JSON array
+  urgency         String    @default("normal") // urgent | normal
+  status          String    @default("submitted") // submitted | claimed | in_progress | completed | settled
+  reportedById    String
+  claimedById     String?
+  resolvedAt      DateTime?
+  resolvedPhotos  String    @default("[]")
+  cost            Float?
+  costSplitMethod String    @default("equal")
+  relatedItemId   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  house       House       @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  reportedBy  Member      @relation("reporter", fields: [reportedById], references: [id])
+  claimedBy   Member?     @relation("claimer", fields: [claimedById], references: [id])
+  relatedItem SharedItem? @relation(fields: [relatedItemId], references: [id])
+  splits      BillSplit[]
+}
+
+// ──────────────────────────────────
+// 结算
+// ──────────────────────────────────
+
+model Settlement {
+  id             String    @id @default(cuid())
+  houseId        String
+  fromMemberId   String
+  toMemberId     String
+  amount         Float
+  period         String
+  status         String    @default("pending") // pending | paid | confirmed
+  paidAt         DateTime?
+  confirmedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  house      House  @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  fromMember Member @relation("from", fields: [fromMemberId], references: [id])
+  toMember   Member @relation("to", fields: [toMemberId], references: [id])
+}
+
+model MonthlyBill {
+  id            String    @id @default(cuid())
+  houseId       String
+  period        String
+  totalAmount   Float
+  memberSummary String    // JSON
+  status        String    @default("draft") // draft | published | settled
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  house House @relation(fields: [houseId], references: [id], onDelete: Cascade)
+
+  @@unique([houseId, period])
+}
+
+// ──────────────────────────────────
+// 公告板
+// ──────────────────────────────────
+
+model Announcement {
+  id        String    @id @default(cuid())
+  houseId   String
+  authorId  String
+  title     String
+  content   String
+  isPinned  Boolean   @default(false)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  house  House  @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  author Member @relation(fields: [authorId], references: [id])
+}
+
+model Visitor {
+  id            String   @id @default(cuid())
+  houseId       String
+  visitorName   String
+  hostMemberId  String
+  visitDate     DateTime
+  isOvernight   Boolean  @default(false)
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  house      House  @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  hostMember Member @relation(fields: [hostMemberId], references: [id])
+}
+
+model HouseRule {
+  id        String   @id @default(cuid())
+  houseId   String
+  ruleText  String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  house House @relation(fields: [houseId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────
+// 通知 & 动态
+// ──────────────────────────────────
+
+model Notification {
+  id             String   @id @default(cuid())
+  houseId        String
+  targetMemberId String?
+  type           String
+  title          String
+  body           String?
+  link           String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  house        House   @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  targetMember Member? @relation(fields: [targetMemberId], references: [id])
+}
+
+model ActivityFeed {
+  id            String   @id @default(cuid())
+  houseId       String
+  actorMemberId String?
+  actionType    String
+  actionData    String?  // JSON
+  createdAt     DateTime @default(now())
+
+  house       House   @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  actorMember Member? @relation(fields: [actorMemberId], references: [id])
+}
