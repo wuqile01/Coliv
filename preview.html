@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoLiv 合租管家 · 预览</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f5; }
+.phone-wrap { display: flex; justify-content: center; align-items: flex-start; gap: 40px; padding: 40px 20px; flex-wrap: wrap; }
+.phone { width: 375px; height: 812px; background: #fff; border-radius: 40px; box-shadow: 0 30px 80px rgba(0,0,0,.18); overflow: hidden; position: relative; border: 8px solid #1a1a1a; display: flex; flex-direction: column; }
+.phone-label { text-align: center; margin-top: 12px; font-size: 13px; color: #888; font-weight: 500; }
+.statusbar { height: 44px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-size: 12px; font-weight: 600; color: #111; flex-shrink: 0; }
+.topbar { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #f0f0f0; background: #fff; flex-shrink: 0; }
+.topbar-title { font-size: 17px; font-weight: 700; color: #111; display: flex; align-items: center; gap: 6px; }
+.topbar-badge { font-size: 11px; color: #22c55e; background: #f0fdf4; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #22c55e, #16a34a); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; font-weight: 700; }
+.scroll-area { flex: 1; overflow-y: auto; padding-bottom: 70px; }
+.scroll-area::-webkit-scrollbar { width: 0; }
+.tabbar { position: absolute; bottom: 0; left: 0; right: 0; height: 64px; background: #fff; border-top: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-around; padding-bottom: 8px; }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: #9ca3af; padding: 4px 12px; }
+.tab.active { color: #22c55e; }
+.tab svg { width: 22px; height: 22px; }
+.section { padding: 16px 16px 0; }
+.section-title { font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+.card { background: #fff; border-radius: 16px; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+/* 账单卡片 */
+.bill-card { background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 16px; padding: 18px; color: #fff; }
+.bill-amount { font-size: 28px; font-weight: 800; margin: 4px 0 2px; }
+.bill-row { display: flex; gap: 8px; margin-top: 12px; }
+.bill-stat { background: rgba(255,255,255,.18); border-radius: 10px; padding: 8px 14px; flex: 1; text-align: center; }
+.bill-stat .val { font-size: 16px; font-weight: 700; }
+.bill-stat .lbl { font-size: 10px; opacity: .8; margin-top: 1px; }
+/* 待办 */
+.todo-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #f5f5f5; }
+.todo-item:last-child { border-bottom: none; }
+.todo-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.todo-info { flex: 1; }
+.todo-title { font-size: 14px; font-weight: 600; color: #111; }
+.todo-sub { font-size: 12px; color: #9ca3af; margin-top: 1px; }
+.chip { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+.chip-red { background: #fef2f2; color: #ef4444; }
+.chip-orange { background: #fff7ed; color: #f97316; }
+.chip-gray { background: #f9fafb; color: #6b7280; }
+.chip-blue { background: #eff6ff; color: #3b82f6; }
+/* 动态 */
+.feed-item { display: flex; gap: 10px; padding: 9px 14px; border-bottom: 1px solid #f5f5f5; align-items: flex-start; }
+.feed-item:last-child { border-bottom: none; }
+.feed-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.feed-text { font-size: 13px; color: #374151; flex: 1; line-height: 1.4; }
+.feed-time { font-size: 11px; color: #9ca3af; white-space: nowrap; }
+/* 快捷入口 */
+.quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 14px; }
+.quick-btn { background: #f9fafb; border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: #374151; font-weight: 500; }
+.qi { width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+/* 分组头 */
+.group-header { display: flex; align-items: center; gap: 8px; padding: 14px 16px 8px; }
+.group-line { flex: 1; height: 1px; background: #e5e7eb; }
+.group-chip { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+/* 任务卡片 */
+.task-card { background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
+.task-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.task-body { flex: 1; min-width: 0; }
+.task-chips { display: flex; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+.task-chip-freq { font-size: 10px; padding: 2px 7px; border-radius: 20px; background: #f9fafb; color: #6b7280; }
+.task-title { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 4px; }
+.task-subtasks { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
+.task-tag { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+.task-actions { display: flex; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0; }
+.check-btn { width: 36px; height: 36px; border-radius: 50%; background: #22c55e; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(34,197,94,.35); }
+.more-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 16px; }
+/* 费用 */
+.exp-row { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #f5f5f5; gap: 10px; }
+.exp-row:last-child { border-bottom: none; }
+.exp-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.exp-name { font-size: 14px; font-weight: 600; color: #111; }
+.exp-split { font-size: 12px; color: #6b7280; margin-top: 1px; }
+/* 结算 */
+.settle-row { display: flex; align-items: center; padding: 11px 14px; border-bottom: 1px solid #f5f5f5; gap: 8px; }
+.settle-row:last-child { border-bottom: none; }
+.settle-btn { font-size: 11px; padding: 4px 10px; border-radius: 8px; border: 1.5px solid #22c55e; color: #22c55e; background: transparent; font-weight: 600; white-space: nowrap; }
+.fab { position: absolute; right: 20px; bottom: 82px; width: 48px; height: 48px; background: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(34,197,94,.4); z-index: 10; font-size: 24px; color: #fff; font-weight: 300; }
+</style>
+</head>
+<body>
+<div style="text-align:center;padding:30px 20px 10px;">
+  <h1 style="font-size:24px;font-weight:800;color:#111;">CoLiv 合租管家</h1>
+  <p style="color:#6b7280;margin-top:6px;font-size:14px;">UI 预览 · 3 个核心页面 · 2026-09-29</p>
+</div>
+<div class="phone-wrap">
+
+<!-- ═══ 屏幕1：首页 ═══ -->
+<div>
+<div class="phone">
+  <div class="statusbar">15:40 <span>📶 🔋</span></div>
+  <div class="topbar">
+    <div class="topbar-title">朝阳合租 <span class="topbar-badge">3人</span></div>
+    <div class="avatar">张</div>
+  </div>
+  <div class="scroll-area">
+    <div class="section" style="margin-top:12px;">
+      <div class="bill-card">
+        <div style="font-size:12px;opacity:.8;">2026年9月 账单</div>
+        <div class="bill-amount">¥856.50</div>
+        <div style="font-size:12px;opacity:.85;">每人应付约 ¥285.50</div>
+        <div class="bill-row">
+          <div class="bill-stat"><div class="val">¥285</div><div class="lbl">我应付</div></div>
+          <div class="bill-stat"><div class="val">¥200</div><div class="lbl">已付</div></div>
+          <div class="bill-stat"><div class="val" style="color:#fde047;">¥85</div><div class="lbl">待结清</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="section" style="margin-top:14px;">
+      <div class="section-title">本周待办</div>
+      <div class="card">
+        <div class="todo-item"><div class="todo-icon" style="background:#fef9c3;">🍳</div><div class="todo-info"><div class="todo-title">厨房清洁</div><div class="todo-sub">轮到你了 · 今天截止</div></div><span class="chip chip-orange">今天到期</span></div>
+        <div class="todo-item"><div class="todo-icon" style="background:#fce7f3;">🗑️</div><div class="todo-info"><div class="todo-title">倒垃圾</div><div class="todo-sub">已逾期 1 天</div></div><span class="chip chip-red">已逾期</span></div>
+        <div class="todo-item"><div class="todo-icon" style="background:#fef2f2;">🔧</div><div class="todo-info"><div class="todo-title">卫生间水龙头漏水</div><div class="todo-sub">维修工单 · 待认领</div></div><span class="chip chip-red">紧急</span></div>
+        <div class="todo-item"><div class="todo-icon" style="background:#fefce8;">📦</div><div class="todo-info"><div class="todo-title">纸巾快用完了</div><div class="todo-sub">低库存提醒</div></div><span class="chip chip-gray">补货</span></div>
+      </div>
+    </div>
+    <div class="section" style="margin-top:14px;">
+      <div class="section-title">最近动态</div>
+      <div class="card">
+        <div class="feed-item"><div class="feed-dot" style="background:#22c55e;"></div><div class="feed-text">李四 完成了 <strong>卫生间清洁</strong> ✓</div><div class="feed-time">2h前</div></div>
+        <div class="feed-item"><div class="feed-dot" style="background:#3b82f6;"></div><div class="feed-text">王五 登记采购 <strong>纸巾</strong> ¥45 · 每人¥15</div><div class="feed-time">5h前</div></div>
+        <div class="feed-item"><div class="feed-dot" style="background:#f97316;"></div><div class="feed-text">张三 录入 <strong>9月电费</strong> ¥320</div><div class="feed-time">昨天</div></div>
+      </div>
+    </div>
+    <div class="section" style="margin-top:14px;">
+      <div class="section-title">快捷入口</div>
+      <div class="card">
+        <div class="quick-grid">
+          <div class="quick-btn"><div class="qi" style="background:#f0fdf4;">🛒</div>登记采购</div>
+          <div class="quick-btn"><div class="qi" style="background:#eff6ff;">💡</div>录入水电</div>
+          <div class="quick-btn"><div class="qi" style="background:#fef2f2;">🔧</div>报修</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tab active"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>首页</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>清洁</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>费用</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>维修</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>更多</div>
+  </div>
+</div>
+<div class="phone-label">首页 Dashboard</div>
+</div>
+
+<!-- ═══ 屏幕2：清洁中心 ═══ -->
+<div>
+<div class="phone">
+  <div class="statusbar">15:40 <span>📶 🔋</span></div>
+  <div class="topbar">
+    <div class="topbar-title">清洁中心</div>
+    <span style="font-size:13px;color:#6b7280;">⚠️ 🏷️ ↕️</span>
+  </div>
+  <div style="display:flex;border-bottom:2px solid #f0f0f0;background:#fff;flex-shrink:0;">
+    <div style="flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:700;color:#22c55e;border-bottom:2px solid #22c55e;margin-bottom:-2px;">我的任务</div>
+    <div style="flex:1;text-align:center;padding:10px 0;font-size:13px;color:#9ca3af;">全部任务</div>
+    <div style="flex:1;text-align:center;padding:10px 0;font-size:13px;color:#9ca3af;">公平看板</div>
+  </div>
+  <div style="padding:10px 16px;background:#fff;flex-shrink:0;border-bottom:1px solid #f0f0f0;">
+    <div style="background:#f4f4f5;border-radius:10px;padding:8px 12px;font-size:13px;color:#9ca3af;">🔍 搜索任务...</div>
+  </div>
+  <div class="scroll-area" style="padding-bottom:80px;">
+    <div class="group-header"><div class="group-line"></div><div class="group-chip chip-red">⏰ 1 已逾期 ⌃</div><div class="group-line"></div></div>
+    <div style="padding:0 16px;margin-bottom:10px;">
+      <div class="task-card">
+        <div class="task-icon" style="background:#fce7f3;">🗑️</div>
+        <div class="task-body">
+          <div class="task-chips"><span class="chip chip-red" style="font-size:10px;">逾期1天</span><span class="task-chip-freq">⟲ 每天</span></div>
+          <div class="task-title">倒垃圾</div>
+          <span class="task-tag" style="background:#fce7f3;color:#be185d;">公共区</span>
+        </div>
+        <div class="task-actions">
+          <button class="check-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></button>
+          <div class="more-btn">⋮</div>
+        </div>
+      </div>
+    </div>
+    <div class="group-header"><div class="group-line"></div><div class="group-chip chip-orange">📅 1 今天 ⌃</div><div class="group-line"></div></div>
+    <div style="padding:0 16px;margin-bottom:10px;">
+      <div class="task-card">
+        <div class="task-icon" style="background:#fef9c3;">🍳</div>
+        <div class="task-body">
+          <div class="task-chips"><span class="chip chip-orange" style="font-size:10px;">今天截止</span><span class="task-chip-freq">⟲ 每周</span></div>
+          <div class="task-title">厨房清洁</div>
+          <div class="task-subtasks">灶台 · 油烟机 · 地面 · 水槽</div>
+          <span class="task-tag" style="background:#fef9c3;color:#a16207;">厨房</span>
+        </div>
+        <div class="task-actions">
+          <button class="check-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></button>
+          <div class="more-btn">⋮</div>
+        </div>
+      </div>
+    </div>
+    <div class="group-header"><div class="group-line"></div><div class="group-chip chip-blue">📆 1 明天 ⌃</div><div class="group-line"></div></div>
+    <div style="padding:0 16px;margin-bottom:10px;">
+      <div class="task-card">
+        <div class="task-icon" style="background:#dbeafe;">🚿</div>
+        <div class="task-body">
+          <div class="task-chips"><span class="chip chip-blue" style="font-size:10px;">明天截止</span><span class="task-chip-freq">⟲ 每周</span></div>
+          <div class="task-title">卫生间清洁</div>
+          <div class="task-subtasks">马桶 · 洗手台 · 地面</div>
+          <span class="task-tag" style="background:#dbeafe;color:#1d4ed8;">卫生间</span>
+        </div>
+        <div class="task-actions">
+          <button class="check-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></button>
+          <div class="more-btn">⋮</div>
+        </div>
+      </div>
+    </div>
+    <div class="group-header"><div class="group-line"></div><div class="group-chip chip-gray">🗓️ 1 下周 ⌃</div><div class="group-line"></div></div>
+    <div style="padding:0 16px;margin-bottom:10px;">
+      <div class="task-card" style="opacity:.6;">
+        <div class="task-icon" style="background:#f0fdf4;">🛋️</div>
+        <div class="task-body">
+          <div class="task-chips"><span class="chip chip-gray" style="font-size:10px;">5天后</span><span class="task-chip-freq">⟲ 每周</span></div>
+          <div class="task-title">客厅清洁</div>
+          <span class="task-tag" style="background:#f0fdf4;color:#15803d;">客厅</span>
+        </div>
+        <div class="task-actions">
+          <button class="check-btn" style="background:#e5e7eb;box-shadow:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></button>
+          <div class="more-btn">⋮</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="fab">＋</div>
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>首页</div>
+    <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>清洁</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>费用</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83"/></svg>维修</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>更多</div>
+  </div>
+</div>
+<div class="phone-label">清洁中心 · Donetick 分组风格</div>
+</div>
+
+<!-- ═══ 屏幕3：费用 ═══ -->
+<div>
+<div class="phone">
+  <div class="statusbar">15:40 <span>📶 🔋</span></div>
+  <div class="topbar">
+    <div class="topbar-title">费用管理</div>
+    <button style="font-size:12px;background:#f0fdf4;color:#22c55e;border:none;padding:5px 10px;border-radius:8px;font-weight:600;">+ 录入</button>
+  </div>
+  <div class="scroll-area" style="padding-bottom:80px;">
+    <div class="section" style="margin-top:12px;">
+      <div class="section-title">2026年9月 · 本月账单</div>
+      <div class="card">
+        <div style="padding:14px 14px 10px;border-bottom:1px solid #f5f5f5;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-size:13px;color:#6b7280;">本月总计</span>
+            <span style="font-size:22px;font-weight:800;color:#111;">¥856.50</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:12px;color:#9ca3af;">我应付 ¥285.50</span>
+            <span style="font-size:12px;color:#22c55e;font-weight:600;">已付 ¥200.00</span>
+          </div>
+        </div>
+        <div class="exp-row"><div class="exp-icon" style="background:#fef9c3;">⚡</div><div style="flex:1"><div class="exp-name">电费</div><div class="exp-split">¥320 · 每人¥106.67</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;">¥106.67</div><div style="font-size:10px;color:#22c55e;">✓ 已录入</div></div></div>
+        <div class="exp-row"><div class="exp-icon" style="background:#dbeafe;">💧</div><div style="flex:1"><div class="exp-name">水费</div><div class="exp-split">¥180 · 每人¥60.00</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;">¥60.00</div><div style="font-size:10px;color:#22c55e;">✓ 已录入</div></div></div>
+        <div class="exp-row"><div class="exp-icon" style="background:#fce7f3;">🔥</div><div style="flex:1"><div class="exp-name">燃气费</div><div class="exp-split">¥120 · 每人¥40.00</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;">¥40.00</div><div style="font-size:10px;color:#22c55e;">✓ 已录入</div></div></div>
+        <div class="exp-row"><div class="exp-icon" style="background:#f0fdf4;">📶</div><div style="flex:1"><div class="exp-name">宽带费</div><div class="exp-split">¥100 · 每人¥33.33</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;">¥33.33</div><div style="font-size:10px;color:#22c55e;">✓ 已录入</div></div></div>
+        <div class="exp-row"><div class="exp-icon" style="background:#f9fafb;">🛒</div><div style="flex:1"><div class="exp-name">公共物品</div><div class="exp-split">纸巾+洗洁精 · 每人¥32.17</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;">¥32.17</div><div style="font-size:10px;color:#22c55e;">✓ 已录入</div></div></div>
+        <div style="padding:12px 14px;display:flex;gap:8px;">
+          <button style="flex:1;background:#22c55e;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;">发布账单</button>
+          <button style="flex:1;background:#f4f4f5;color:#374151;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:600;">导出 CSV</button>
+        </div>
+      </div>
+    </div>
+    <div class="section" style="margin-top:14px;">
+      <div class="section-title">结算台账</div>
+      <div class="card">
+        <div class="settle-row">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;">张</div>
+          <div style="flex:1;font-size:13px;color:#374151;">我欠 <strong>李四</strong></div>
+          <span style="font-size:14px;font-weight:700;color:#ef4444;margin-right:8px;">¥85.50</span>
+          <button class="settle-btn">标记已付</button>
+        </div>
+        <div class="settle-row">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ea580c);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;">王</div>
+          <div style="flex:1;font-size:13px;color:#374151;"><strong>王五</strong> 欠我</div>
+          <span style="font-size:14px;font-weight:700;color:#3b82f6;margin-right:8px;">¥40.00</span>
+          <button class="settle-btn" style="border-color:#3b82f6;color:#3b82f6;">提醒</button>
+        </div>
+        <div style="padding:10px 14px;font-size:12px;color:#6b7280;background:#f9fafb;border-radius:0 0 16px 16px;">💡 已优化为 2 笔转账（原需 3 笔）</div>
+      </div>
+    </div>
+  </div>
+  <div class="fab">＋</div>
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>首页</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>清洁</div>
+    <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>费用</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83"/></svg>维修</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>更多</div>
+  </div>
+</div>
+<div class="phone-label">费用管理</div>
+</div>
+
+</div>
+<div style="text-align:center;padding:20px;color:#9ca3af;font-size:12px;">Next.js 15 + shadcn/ui + Tailwind CSS · 仅 UI 预览，交互逻辑开发中</div>
+</body>
+</html>

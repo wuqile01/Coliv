@@ -18,24 +18,24 @@
 ## Phase 0：项目初始化
 
 - [x] 0.1 初始化 Next.js 15 + TypeScript + Tailwind 项目骨架
-- [ ] 0.2 安装 shadcn/ui，配置基础主题
+- [x] 0.2 安装 shadcn/ui，配置基础主题
 - [x] 0.3 初始化 git 仓库，首次 commit
-- [ ] 0.4 配置 Prisma，连接数据库（本地先用 SQLite 占位可跑通）
+- [x] 0.4 配置 Prisma，连接数据库（本地先用 SQLite 占位可跑通）
 - [x] 0.5 配置 ESLint + Prettier
-- [ ] 0.6 搭建目录结构（按 ARCHITECTURE.md 的目录设计）
+- [x] 0.6 搭建目录结构（按 ARCHITECTURE.md 的目录设计）
 
 ## Phase 1：数据层（对应 ARCHITECTURE.md 数据库设计）
 
-- [ ] 1.1 编写 Prisma schema：users, houses, members
-- [ ] 1.2 编写 Prisma schema：cleaning_zones, cleaning_tasks, cleaning_assignments, cleaning_rotation_order
-- [ ] 1.3 编写 Prisma schema：shared_items
-- [ ] 1.4 编写 Prisma schema：utility_bills, bill_splits, absent_periods
-- [ ] 1.5 编写 Prisma schema：repair_orders
-- [ ] 1.6 编写 Prisma schema：settlements, monthly_bills
-- [ ] 1.7 编写 Prisma schema：announcements, visitors, house_rules
-- [ ] 1.8 编写 Prisma schema：notifications, activity_feed
-- [ ] 1.9 跑通首次 migration，生成本地数据库
-- [ ] 1.10 编写 seed 脚本（造测试数据：1个房屋+3个成员+若干任务）
+- [x] 1.1 编写 Prisma schema：users, houses, members
+- [x] 1.2 编写 Prisma schema：cleaning_zones, cleaning_tasks, cleaning_assignments, cleaning_rotation_order
+- [x] 1.3 编写 Prisma schema：shared_items
+- [x] 1.4 编写 Prisma schema：utility_bills, bill_splits, absent_periods
+- [x] 1.5 编写 Prisma schema：repair_orders
+- [x] 1.6 编写 Prisma schema：settlements, monthly_bills
+- [x] 1.7 编写 Prisma schema：announcements, visitors, house_rules
+- [x] 1.8 编写 Prisma schema：notifications, activity_feed
+- [x] 1.9 跑通首次 migration，生成本地数据库
+- [x] 1.10 编写 seed 脚本（造测试数据：1个房屋+3个成员+若干任务）
 
 ## Phase 2：认证模块（对应 PRD.md 4.1 + ARCHITECTURE.md API清单 A1-A6）
 
@@ -126,13 +126,13 @@
 
 ## 当前进度
 
-**当前任务：0.2 安装 shadcn/ui，配置基础主题**
+**当前任务：2.1 集成 Supabase Auth，配置邮箱登录**
 
-**已完成：** 0.1、0.3、0.5（首次 commit `c049ed2`）
+**已完成：** Phase 0 全部 + Phase 1 全部；响应式网站基础布局与 Dashboard 已完成
 
 ## 变更记录
 
 | 日期 | 变更 |
 |------|------|
 | 2026-09-29 | 初始生成，共 11 个 Phase，60 个任务项 |
-| 2026-09-29 | 完成 0.1/0.3/0.5；Next.js 15.5.26 构建通过；git 首次 commit |
+| 2026-09-29 | 完成 Phase 0、Phase 1 全部；SQLite+seed 跑通；响应式网站布局与 Dashboard 完成 |
