@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Copy, MapPin, Settings, UserPlus, Users } from "lucide-react";
+import { MapPin, Settings, UserPlus, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InviteCard } from "@/components/houses/InviteCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const cycleLabels: Record<string, string> = {
@@ -78,16 +79,11 @@ export default async function HouseDetailPage({ params }: { params: Promise<{ id
         </Card>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">邀请码</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between rounded-xl bg-muted p-4">
-                <code className="text-xl font-bold tracking-[0.18em]">{house.inviteCode}</code>
-                <Button size="icon" variant="ghost" aria-label="复制邀请码"><Copy className="h-4 w-4" /></Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">将邀请码分享给室友即可加入。</p>
-            </CardContent>
-          </Card>
+          <InviteCard
+            houseId={house.id}
+            houseName={house.name}
+            inviteCode={house.inviteCode}
+          />
 
           <Card>
             <CardHeader><CardTitle className="text-base">默认规则</CardTitle></CardHeader>
