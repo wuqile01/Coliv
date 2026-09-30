@@ -9,3 +9,4 @@ build/
 .DS_Store
 prisma/*.db
 prisma/*.db-journal
+tsconfig.tsbuildinfo
