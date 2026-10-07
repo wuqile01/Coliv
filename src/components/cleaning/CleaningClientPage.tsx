@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useTransition } from "react";import { useRouter } from "next/navigation";
 import { Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,8 +29,6 @@ interface CleaningClientPageProps {
   members: { id: string; name: string }[];
   houseId: string;
 }
-
-const DEMO_MEMBER_NAME = "张三";
 
 export function CleaningClientPage({ assignments, groupedAll, members, houseId }: CleaningClientPageProps) {
   const router = useRouter();

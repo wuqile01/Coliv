@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, ChevronDown, ChevronRight, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GROUP_CONFIG, GROUP_ORDER, type GroupedItem, type UrgencyGroup } from "@/lib/urgency";
+import { GROUP_CONFIG, type GroupedItem, type UrgencyGroup } from "@/lib/urgency";
 
 interface TaskCardProps {
   icon: string;

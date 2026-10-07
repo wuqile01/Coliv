@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { groupByUrgency, GROUP_CONFIG } from "@/lib/urgency";
+import { groupByUrgency } from "@/lib/urgency";
 import { CleaningClientPage } from "@/components/cleaning/CleaningClientPage";
 
 const FREQ_LABELS: Record<string, string> = {
