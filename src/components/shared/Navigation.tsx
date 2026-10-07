@@ -104,11 +104,17 @@ export function BottomTabBar() {
           </Link>
         );
       })}
-      {/* 更多 */}
-      <button className="flex flex-col items-center gap-0.5 px-4 py-1 text-xs text-muted-foreground">
+      {/* 更多（跳转公共物品） */}
+      <Link
+        href="/items"
+        className={cn(
+          "flex flex-col items-center gap-0.5 px-4 py-1 text-xs transition-colors",
+          isActive("/items", pathname) ? "text-primary" : "text-muted-foreground"
+        )}
+      >
         <ShoppingBag className="h-5 w-5" />
-        更多
-      </button>
+        物品
+      </Link>
     </nav>
   );
 }
