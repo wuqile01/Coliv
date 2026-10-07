@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "buildCommand": "prisma generate && next build",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "env": {
+    "SKIP_ENV_VALIDATION": "1"
+  }
+}
