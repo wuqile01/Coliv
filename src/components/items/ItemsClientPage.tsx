@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, ShoppingBag, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -159,13 +160,13 @@ export function ItemsClientPage({ items, members, houseId }: ItemsClientPageProp
         </TabsList>
         <TabsContent value="consumable" className="mt-4">
           {consumables.length === 0
-            ? <div className="text-center py-12 text-muted-foreground"><ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-30" /><p className="text-sm">还没有消耗品记录</p></div>
+            ? <EmptyState icon={ShoppingBag} title="还没有消耗品记录" description="纸巾、洗洁精这类用完就补的日用品记在这里" action={{ label: "登记采购", onClick: () => setOpen(true) }} />
             : <Card><CardContent className="p-0">{consumables.map(renderItem)}</CardContent></Card>
           }
         </TabsContent>
         <TabsContent value="durable" className="mt-4">
           {durables.length === 0
-            ? <div className="text-center py-12 text-muted-foreground"><ShoppingBag className="h-8 w-8 mx-auto mb-2 opacity-30" /><p className="text-sm">还没有耐用品记录</p></div>
+            ? <EmptyState icon={ShoppingBag} title="还没有耐用品记录" description="扫把、拖把这类长期共用的大件记在这里" action={{ label: "登记采购", onClick: () => setOpen(true) }} />
             : <Card><CardContent className="p-0">{durables.map(renderItem)}</CardContent></Card>
           }
         </TabsContent>

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, Wrench, AlertTriangle } from "lucide-react";
+import { Plus, Loader2, Wrench, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { GROUP_CONFIG } from "@/lib/urgency";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
@@ -197,10 +198,12 @@ export function RepairsClientPage({ orders, members, houseId }: RepairsClientPag
 
         <TabsContent value="pending" className="mt-4">
           {pending.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Wrench className="h-8 w-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">没有待处理的工单</p>
-            </div>
+            <EmptyState
+              icon={Wrench}
+              title="没有待处理的工单"
+              description="家里一切正常，有问题随时报修"
+              action={{ label: "提交报修", onClick: () => setOpen(true) }}
+            />
           ) : (
             <Card><CardContent className="p-0">{pending.map(renderOrder)}</CardContent></Card>
           )}
@@ -208,9 +211,7 @@ export function RepairsClientPage({ orders, members, houseId }: RepairsClientPag
 
         <TabsContent value="done" className="mt-4">
           {done.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-sm">还没有已完成的工单</p>
-            </div>
+            <EmptyState icon={CheckCircle2} title="还没有已完成的工单" description="维修完成后会归档到这里" />
           ) : (
             <Card><CardContent className="p-0">{done.map(renderOrder)}</CardContent></Card>
           )}

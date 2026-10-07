@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, Pin, User } from "lucide-react";
+import { Plus, Loader2, Pin, User, Megaphone, DoorOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { formatDistanceToNow, format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 
@@ -194,20 +195,23 @@ export function BoardClientPage({ announcements, visitors, members, houseId }: P
             </div>
           )}
           {announcements.length === 0 && (
-            <div className="text-center py-14 text-muted-foreground">
-              <p className="text-3xl mb-2">📋</p>
-              <p className="text-sm">还没有任何公告</p>
-            </div>
+            <EmptyState
+              icon={Megaphone}
+              title="还没有任何公告"
+              description="发布第一条公告，让室友们了解房屋动态"
+              action={{ label: "发公告", onClick: () => setAnnOpen(true) }}
+            />
           )}
         </TabsContent>
 
         {/* 访客记录 */}
         <TabsContent value="visitors" className="mt-4">
           {visitors.length === 0 ? (
-            <div className="text-center py-14 text-muted-foreground">
-              <p className="text-3xl mb-2">🚪</p>
-              <p className="text-sm">还没有访客记录</p>
-            </div>
+            <EmptyState
+              icon={DoorOpen}
+              title="还没有访客记录"
+              description="有朋友来访时登记一下，室友们心里有数"
+            />
           ) : (
             <Card>
               <CardContent className="p-0">

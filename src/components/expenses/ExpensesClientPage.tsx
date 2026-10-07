@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, ArrowRight } from "lucide-react";
+import { Plus, Loader2, ArrowRight, Receipt, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 interface BillSplit { memberId: string; memberName: string; amount: number; }
 interface Bill {
@@ -181,10 +182,12 @@ export function ExpensesClientPage({ bills, members, memberNet, settlementRoutes
             </CardHeader>
             <CardContent className="p-0">
               {bills.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground">
-                  <p className="text-3xl mb-2">📋</p>
-                  <p className="text-sm">本月还没有账单记录</p>
-                </div>
+                <EmptyState
+                  icon={Receipt}
+                  title="本月还没有账单记录"
+                  description="录入水电燃气等账单，系统自动按人数均摊"
+                  action={{ label: "录入账单", onClick: () => setOpen(true) }}
+                />
               ) : bills.map((bill, i) => (
                 <div key={bill.id} className={`flex items-center gap-3 px-4 py-3 ${i < bills.length - 1 ? "border-b" : ""}`}>
                   <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center text-lg shrink-0">
@@ -214,7 +217,7 @@ export function ExpensesClientPage({ bills, members, memberNet, settlementRoutes
             </CardHeader>
             <CardContent className="p-0">
               {settlementRoutes.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-muted-foreground">暂无待结算金额</div>
+                <EmptyState icon={CheckCircle2} title="暂无待结算金额" description="本月账目已结清" className="py-8" />
               ) : (
                 <>
                   {settlementRoutes.map((r, i) => (
