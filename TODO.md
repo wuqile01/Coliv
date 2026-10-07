@@ -111,10 +111,10 @@
 
 ## Phase 11：PWA & 收尾
 
-- [ ] 11.1 配置 next-pwa，支持离线安装
+- [x] 11.1 配置 PWA（manifest.json + sw.js 原生方案，零依赖）
 - [x] 11.2 全局空状态组件（src/components/shared/EmptyState.tsx，已接入 4 个页面）
-- [ ] 11.3 响应式适配（移动优先，扩展到 tablet/desktop）
-- [ ] 11.4 部署到 Vercel，连接生产 Supabase
+- [x] 11.3 响应式适配（移动优先，扩展到 tablet/desktop）
+- [x] 11.4 Vercel 部署配置完成（schema 切 PostgreSQL + DEPLOY.md 指南）† 待用户创建 Supabase 项目后实际部署
 
 ---
 
@@ -135,7 +135,7 @@
 - Phase 9 Dashboard 真实数据接入
 - Phase 11.2 空状态组件
 
-**剩余：** 11.1 PWA / 11.3 响应式微调 / 11.4 Vercel 部署
+**代码全部完成。** 剩余仅需用户侧操作：创建 Supabase 项目并导入 Vercel（见 DEPLOY.md）
 
 ## 变更记录
 
