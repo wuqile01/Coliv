@@ -6,8 +6,10 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl 用于 Prisma Migrate（绕过连接池），SQLite 本地开发时注释掉
+  // directUrl = env("DATABASE_DIRECT_URL")
 }
 
 // ──────────────────────────────────

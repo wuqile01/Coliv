@@ -1,6 +1,10 @@
 import { Sidebar, BottomTabBar } from "@/components/shared/Navigation";
 import { TopHeader } from "@/components/shared/TopHeader";
 
+// 所有页面均依赖数据库实时数据，禁用构建期预渲染
+// 否则 Vercel 构建时会尝试连接数据库，导致构建失败
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-muted/30">
