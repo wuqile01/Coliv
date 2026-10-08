@@ -14,11 +14,11 @@ const PUBLIC_PATHS = ["/signin", "/signup", "/join", "/api/auth"];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 演示模式：跳过登录校验
-  // 访问登录/注册页时重定向到首页，避免用户卡在无密码的登录表单
+  // 演示模式：跳过登录校验，直接进入应用
+  // 注意：/signin 保持可访问，它是「切换账号」的入口
   if (process.env.DEMO_MODE === "true") {
-    if (pathname === "/signin" || pathname === "/signup") {
-      return NextResponse.redirect(new URL("/", request.url));
+    if (pathname === "/signup") {
+      return NextResponse.redirect(new URL("/signin", request.url));
     }
     return NextResponse.next();
   }

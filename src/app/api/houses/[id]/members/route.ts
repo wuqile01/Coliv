@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getCurrentIdentity } from "@/lib/identity";
+
+/** 判断当前用户是否为指定房屋的房主 */
+async function assertOwner(houseId: string) {
+  const identity = await getCurrentIdentity();
+  if (!identity) return { ok: false as const, status: 401, message: "未登录" };
+  if (identity.houseId !== houseId || !identity.isOwner) {
+    return { ok: false as const, status: 403, message: "仅房主可执行此操作" };
+  }
+  return { ok: true as const };
+}
 
 const updateMemberSchema = z.object({
   roomNumber: z.string().trim().max(10).optional(),
@@ -19,6 +30,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  const perm = await assertOwner(id);
+  if (!perm.ok) return NextResponse.json({ message: perm.message }, { status: perm.status });
+
   const body = await request.json();
   const memberId: string = body.memberId;
 

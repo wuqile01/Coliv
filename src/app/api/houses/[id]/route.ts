@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getCurrentIdentity } from "@/lib/identity";
+
+/** 仅房主可修改/删除房屋 */
+async function assertOwner(houseId: string) {
+  const identity = await getCurrentIdentity();
+  if (!identity) return { ok: false as const, status: 401, message: "未登录" };
+  if (identity.houseId !== houseId || !identity.isOwner) {
+    return { ok: false as const, status: 403, message: "仅房主可修改房屋设置" };
+  }
+  return { ok: true as const };
+}
 
 const updateHouseSchema = z.object({
   name: z.string().trim().min(2, "房屋名称至少 2 个字").max(30, "房屋名称最多 30 个字").optional(),
@@ -24,6 +35,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  const perm = await assertOwner(id);
+  if (!perm.ok) return NextResponse.json({ message: perm.message }, { status: perm.status });
 
   try {
     const house = await getHouse(id);
@@ -72,6 +86,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  const perm = await assertOwner(id);
+  if (!perm.ok) return NextResponse.json({ message: perm.message }, { status: perm.status });
+
   try {
     await prisma.house.delete({ where: { id } });
     return NextResponse.json({ ok: true });

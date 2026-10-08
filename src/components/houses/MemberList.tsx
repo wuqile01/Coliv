@@ -35,9 +35,11 @@ interface MemberListProps {
   houseId: string;
   members: MemberItem[];
   houseOwnerId: string;
+  /** 当前用户是否为房主；非房主只能查看，不能改房间号/角色或办理退租 */
+  canManage?: boolean;
 }
 
-export function MemberList({ houseId, members, houseOwnerId }: MemberListProps) {
+export function MemberList({ houseId, members, houseOwnerId, canManage = false }: MemberListProps) {
   const router = useRouter();
   const [editing, setEditing] = useState<MemberItem | null>(null);
   const [leaving, setLeaving] = useState<MemberItem | null>(null);
@@ -112,9 +114,13 @@ export function MemberList({ houseId, members, houseOwnerId }: MemberListProps) 
             <Badge variant={m.role === "owner" ? "default" : m.role === "admin" ? "secondary" : "outline"}>
               {m.role === "owner" ? "房主" : m.role === "admin" ? "管理员" : "成员"}
             </Badge>
-            <Button variant="ghost" size="icon" onClick={() => { setEditing(m); setError(""); }}>
-              <MoreVertical className="h-4 w-4" />
-            </Button>
+            {canManage ? (
+              <Button variant="ghost" size="icon" onClick={() => { setEditing(m); setError(""); }}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            ) : (
+              <span className="w-10" aria-hidden />
+            )}
           </div>
         ))}
       </div>

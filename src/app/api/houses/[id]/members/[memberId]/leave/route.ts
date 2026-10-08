@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentIdentity } from "@/lib/identity";
 
 /**
  * 成员退租：设置 leaveDate，保留历史数据（账单、清洁记录等）。
- * 认证暂时跳过：Phase 2 接入后校验操作者权限。
+ * 权限：仅房主可办理退租。
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string; memberId: string }> }) {
   const { id, memberId } = await params;
+
+  const identity = await getCurrentIdentity();
+  if (!identity) return NextResponse.json({ message: "未登录" }, { status: 401 });
+  if (identity.houseId !== id || !identity.isOwner) {
+    return NextResponse.json({ message: "仅房主可办理退租" }, { status: 403 });
+  }
 
   try {
     const member = await prisma.member.findFirst({

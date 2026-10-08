@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, Settings, UserPlus, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getCurrentIdentity } from "@/lib/identity";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,20 +24,25 @@ const splitLabels: Record<string, string> = {
 
 export default async function HouseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const house = await prisma.house.findUnique({
-    where: { id },
-    include: {
-      members: {
-        where: { leaveDate: null },
-        include: { user: { select: { name: true, email: true } } },
-        orderBy: { createdAt: "asc" },
+  const [house, identity] = await Promise.all([
+    prisma.house.findUnique({
+      where: { id },
+      include: {
+        members: {
+          where: { leaveDate: null },
+          include: { user: { select: { name: true, email: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
-    },
-  });
+    }),
+    getCurrentIdentity(),
+  ]);
 
   if (!house) notFound();
 
   const ownerMember = house.members.find((m) => m.role === "owner");
+  // 只有房主能进入房屋设置（改规则、管成员）
+  const canManage = !!identity && identity.houseId === house.id && identity.isOwner;
 
   return (
     <div className="space-y-6">
@@ -53,12 +59,22 @@ export default async function HouseDetailPage({ params }: { params: Promise<{ id
           )}
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href={`/houses/${house.id}/settings`}><Settings className="h-4 w-4 mr-2" />房屋设置</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/join"><UserPlus className="h-4 w-4 mr-2" />邀请室友</Link>
-          </Button>
+          {canManage ? (
+            <Button asChild variant="outline">
+              <Link href={`/houses/${house.id}/settings`}>
+                <Settings className="h-4 w-4 mr-2" />房屋设置
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="outline" disabled title="仅房主可修改房屋设置">
+              <Settings className="h-4 w-4 mr-2" />房屋设置
+            </Button>
+          )}
+          {canManage ? (
+            <Button asChild>
+              <Link href="/join"><UserPlus className="h-4 w-4 mr-2" />邀请室友</Link>
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -72,6 +88,7 @@ export default async function HouseDetailPage({ params }: { params: Promise<{ id
             <MemberList
               houseId={house.id}
               houseOwnerId={ownerMember?.id ?? ""}
+              canManage={canManage}
               members={house.members.map((m) => ({
                 id: m.id,
                 role: m.role,

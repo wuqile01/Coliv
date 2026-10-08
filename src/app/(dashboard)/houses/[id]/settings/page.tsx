@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Settings } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getCurrentIdentity } from "@/lib/identity";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HouseSettingsForm } from "@/components/houses/HouseSettingsForm";
 
@@ -19,8 +20,15 @@ function BackLink({ href }: { href: string }) {
 
 export default async function HouseSettingsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const house = await prisma.house.findUnique({ where: { id } });
+  const [house, identity] = await Promise.all([
+    prisma.house.findUnique({ where: { id } }),
+    getCurrentIdentity(),
+  ]);
   if (!house) notFound();
+
+  // 服务端权限校验：非房主即使直接输入 URL 也不能进入
+  const canManage = !!identity && identity.houseId === house.id && identity.isOwner;
+  if (!canManage) redirect(`/houses/${house.id}`);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

@@ -1,9 +1,79 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, LogOut, UserRound, RefreshCw, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function TopHeader({ houseName = "朝阳合租" }: { houseName?: string }) {
+export type HeaderUser = {
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  isOwner: boolean;
+};
+
+/**
+ * 顶部栏
+ *
+ * - 左侧：房屋名称
+ * - 右侧：公告入口 + 用户头像菜单
+ *
+ * 头像菜单用原生实现（不依赖 radix dropdown），
+ * 因为演示模式下需要保证在任何环境下都能正常展开。
+ */
+export function TopHeader({
+  houseName = "朝阳合租",
+  user,
+}: {
+  houseName?: string;
+  user?: HeaderUser | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // 点击外部关闭
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const displayName = user?.name ?? "未登录";
+  const initial = displayName.slice(0, 1);
+
+  async function handleSignOut() {
+    setOpen(false);
+    // 演示模式：清掉身份 cookie 即视为退出，回到账号选择页
+    try {
+      if (user) {
+        await fetch("/api/demo-accounts", { method: "DELETE" });
+      }
+      const { signOut } = await import("@/lib/auth-client");
+      await signOut();
+    } catch {
+      // 认证未启用时忽略
+    }
+    router.push("/signin");
+    router.refresh();
+  }
+
+  function handleSwitchAccount() {
+    setOpen(false);
+    router.push("/signin");
+  }
+
   return (
     <header className="h-14 border-b bg-background flex items-center justify-between px-4 md:px-6 shrink-0 sticky top-0 z-40">
       <div className="flex items-center gap-2">
@@ -23,8 +93,77 @@ export function TopHeader({ houseName = "朝阳合租" }: { houseName?: string }
         >
           <Bell className="h-5 w-5 text-muted-foreground" />
         </Link>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-green-700 flex items-center justify-center text-white text-sm font-bold select-none">
-          张
+
+        <div className="relative" ref={ref}>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-xl pl-1 pr-1.5 h-10 transition-colors",
+              open ? "bg-muted" : "hover:bg-muted"
+            )}
+            aria-label="账号菜单"
+            aria-expanded={open}
+          >
+            {user?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatarUrl}
+                alt={displayName}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <span className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-green-700 flex items-center justify-center text-white text-sm font-bold select-none">
+                {initial}
+              </span>
+            )}
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+
+          {open && (
+            <div className="absolute right-0 top-full mt-1.5 w-56 rounded-xl border bg-background shadow-lg overflow-hidden z-50">
+              {/* 账号信息 */}
+              <div className="px-4 py-3 border-b bg-muted/30">
+                <p className="text-sm font-semibold truncate">{displayName}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email ?? "—"}</p>
+                {user?.isOwner && (
+                  <span className="inline-block mt-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                    房主
+                  </span>
+                )}
+              </div>
+
+              <div className="py-1">
+                <Link
+                  href="/profile"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                >
+                  <UserRound className="h-4 w-4 text-muted-foreground" />
+                  编辑个人资料
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSwitchAccount}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors text-left"
+                >
+                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                  切换账号
+                </button>
+              </div>
+
+              <div className="border-t py-1">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors text-left text-destructive"
+                >
+                  <LogOut className="h-4 w-4" />
+                  退出登录
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
