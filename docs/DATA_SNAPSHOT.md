@@ -145,15 +145,31 @@
 
 打开 [Supabase Table Editor](https://supabase.com/dashboard/project/qgcfhkhxvvcxcvshight/editor)
 
-左侧选表 → 右侧看数据，可以直接改、可以导出 CSV。
-登录用你创建项目时的 Supabase 账号。
+**⚠️ 第一个坑：schema 一定要选 `public`**
 
-> 注意：这是**你的** Supabase 项目，用你自己的账号登录。
-> 如果记不清密码，用邮箱找回。
+左上角的「模式 / Schema」下拉框，默认可能停在 **`auth`** —— 那是 Supabase 自带的
+认证系统表（`users`、`identities`、`mfa_factors`…），**我们一个都没用到，所以是空的**。
+
+我们的数据全在 **`public`** 里。切过去才能看到这 19 张表：
+
+```
+User  Member  House           ← 账号、成员、房屋
+UtilityBill  BillSplit        ← 水电费 + 分摊明细
+SharedItem                    ← 公共物品
+CleaningZone  CleaningTask    ← 清洁分工
+RepairOrder  Announcement     ← 维修、公告
+ActivityFeed  Visitor  ...    ← 动态、访客
+```
+
+> 为什么会有两套？最初接的是 Supabase Auth，后来发现适配器配错了
+> （provider 写成 sqlite），注册能过但读不到用户，就换成自建认证。
+> auth 那套表就此闲置。**在用的只有 `public.User.passwordHash`。**
+
+登录用你创建项目时的 Supabase 账号。如果记不清密码，用邮箱找回。
 
 ### 方式二：SQL Editor
 
-同一个控制台里点 `SQL Editor`，随手查：
+同一个控制台里点 `SQL Editor`，随手查（SQL Editor 不受 schema 下拉影响）：
 
 ```sql
 -- 看所有房屋
@@ -173,13 +189,45 @@ GROUP BY u.name;
 
 ---
 
-## ⚠️ 提醒：数据库密码要改
+## ✅ 数据库密码已更新（2026-10-08）
 
-这个 Supabase 项目的数据库密码之前**泄漏到过 GitHub**，虽然我已经从代码里清干净了，
-但密码本身在 Git 历史里出现过。建议你：
+原密码曾泄漏到 GitHub，现已重置。**首次重置时踩了坑，记录于此**：
 
-1. 打开 [Supabase Database Settings](https://supabase.com/dashboard/project/qgcfhkhxvvcxcvshight/settings/database)
-2. 点 `Reset database password`
-3. 把新密码告诉我，我更新到 Railway 的环境变量 `DATABASE_URL` 里
+**故障现象**：Supabase 改密码后，应用登录返回 `500`，所有涉及数据库的操作全部失败。
+纯静态页面（如 `/signin`）仍返回 200 —— 这个对比能快速定位「是库的问题，不是代码的问题」。
 
-不改的话，知道那个密码的人就能直连你的数据库读走全部数据。
+**原因**：Supabase 密码**立即生效**，但 Railway 上的 `DATABASE_URL` 不会自动跟着变。
+从改密码那一刻起，后端就连不上库了。
+
+**正确顺序**：
+
+1. 在 Supabase [Database Settings](https://supabase.com/dashboard/project/qgcfhkhxvvcxcvshight/settings/database) 重置密码
+   —— **先把新密码复制下来再关弹窗**，关了就再也看不到了
+2. **立刻**更新 Railway 的 `DATABASE_URL`
+3. 密码里的特殊字符必须 **URL 转义**
+
+**关于转义（最容易错的地方）**：
+
+`@` 在 URL 里是「主机分隔符」。如果密码以 `@` 开头却直接写进连接串，
+程序会在第一个 `@` 处切断，解析出错误的主机名。
+
+| 密码本体 | URL 中的写法 |
+|---------|------------|
+| `@MyPass123` | `%40MyPass123` |
+
+完整示例：
+
+```
+postgresql://postgres.<project-ref>:%40MyPass123@aws-0-<region>.pooler.supabase.com:5432/postgres?connection_limit=5
+```
+
+**改完自检**：
+
+```bash
+# 应用是否恢复
+curl -X POST https://coliv-production-4b0c.up.railway.app/api/auth/signin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"zhang@test.com","password":"coliv1234"}'
+# 期望 200，不是 500
+```
+
