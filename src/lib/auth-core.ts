@@ -1,5 +1,10 @@
 import { randomBytes, scrypt as _scrypt, timingSafeEqual, createHmac } from "node:crypto";
 import { promisify } from "node:util";
+import { SESSION_COOKIE, SESSION_DAYS, SESSION_MAX_AGE } from "@/lib/session-shared";
+
+// 常量定义在 session-shared.ts（Edge 兼容，零 node 依赖），
+// 这里转发一次，方便 Node 侧调用方单点导入。
+export { SESSION_COOKIE, SESSION_MAX_AGE };
 
 const scrypt = promisify(_scrypt) as (
   password: string,
@@ -40,11 +45,9 @@ export async function verifyPassword(password: string, stored: string | null): P
 }
 
 // ──────────────────────────────────
-// 会话 Cookie（HMAC 签名，无状态）
+// 会话 Cookie（HMAC 签名，无状态）—— 常量见 session-shared.ts
 // ──────────────────────────────────
 
-export const SESSION_COOKIE = "coliv_session";
-const SESSION_DAYS = 30;
 
 function secret(): string {
   // 生产环境务必设置 AUTH_SECRET；缺失时退回开发默认值并打警告
@@ -90,20 +93,4 @@ export function readSessionToken(token: string | undefined | null): string | nul
   return userId;
 }
 
-/**
- * 仅校验 token 的外形（三段式、未过期），不做签名验证。
- *
- * 供 Edge Runtime 中间件使用：middleware 中 process.env 会被构建时内联，
- * 无法安全拿到 AUTH_SECRET，因此那里只做粗筛，真正的验签交给 Node 运行时。
- */
-export function isTokenShapeValid(token: string | undefined | null): boolean {
-  if (!token) return false;
-  const parts = token.split(".");
-  if (parts.length !== 3) return false;
-  const [userId, expStr, sig] = parts;
-  if (!userId || !sig) return false;
-  const exp = Number(expStr);
-  return Number.isFinite(exp) && Date.now() <= exp;
-}
 
-export const SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE, isTokenShapeValid } from "@/lib/auth-core";
+import { SESSION_COOKIE, isTokenShapeValid } from "@/lib/session-shared";
 
 const PUBLIC_PATHS = ["/signin", "/signup", "/api/auth"];
 
