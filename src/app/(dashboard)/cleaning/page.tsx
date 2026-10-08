@@ -19,7 +19,10 @@ const ZONE_ICONS: Record<string, string> = {
 };
 
 function getIcon(name: string, icon: string | null) {
-  if (icon && icon.length <= 2) return icon;
+  // 注意：不能用 icon.length（UTF-16 码元数），
+  // 带变体选择符的 emoji（如 🛋️）长度为 3，会被误判。
+  // 用码点计数判断是否为单个 emoji。
+  if (icon && [...icon].length <= 2) return icon;
   for (const [k, v] of Object.entries(ZONE_ICONS)) {
     if (name.includes(k)) return v;
   }
