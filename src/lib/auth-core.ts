@@ -90,4 +90,20 @@ export function readSessionToken(token: string | undefined | null): string | nul
   return userId;
 }
 
+/**
+ * 仅校验 token 的外形（三段式、未过期），不做签名验证。
+ *
+ * 供 Edge Runtime 中间件使用：middleware 中 process.env 会被构建时内联，
+ * 无法安全拿到 AUTH_SECRET，因此那里只做粗筛，真正的验签交给 Node 运行时。
+ */
+export function isTokenShapeValid(token: string | undefined | null): boolean {
+  if (!token) return false;
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  const [userId, expStr, sig] = parts;
+  if (!userId || !sig) return false;
+  const exp = Number(expStr);
+  return Number.isFinite(exp) && Date.now() <= exp;
+}
+
 export const SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60;

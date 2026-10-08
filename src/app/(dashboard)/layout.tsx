@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Sidebar, BottomTabBar } from "@/components/shared/Navigation";
 import { TopHeader } from "@/components/shared/TopHeader";
 import { getCurrentIdentity } from "@/lib/identity";
@@ -7,8 +8,12 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // 中间件只做 cookie 外形粗筛，这里做真实验签：
+  // 签名无效或用户已删除时，身份为 null，需重新登录
   const identity = await getCurrentIdentity();
-  const house = identity?.houseId
+  if (!identity) redirect("/signin");
+
+  const house = identity.houseId
     ? await prisma.house.findUnique({ where: { id: identity.houseId } })
     : null;
 
@@ -21,16 +26,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="flex flex-col flex-1 min-w-0">
         <TopHeader
           houseName={house?.name ?? "CoLiv"}
-          user={
-            identity
-              ? {
-                  name: identity.name,
-                  email: identity.email,
-                  avatarUrl: identity.avatarUrl,
-                  isOwner: identity.isOwner,
-                }
-              : null
-          }
+          user={{
+            name: identity.name,
+            email: identity.email,
+            avatarUrl: identity.avatarUrl,
+            isOwner: identity.isOwner,
+          }}
         />
 
         {/* 内容区：桌面端 padding 更大，有最大宽度约束 */}

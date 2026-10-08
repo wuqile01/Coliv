@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,11 +36,8 @@ function parseFeedText(actionType: string, actionData: string | null, actorName:
 export default async function DashboardPage() {
   const house = await getCurrentHouse();
 
-  if (!house) {
-    return (
-      <div className="p-4 text-muted-foreground">未找到房屋数据，请先运行 seed。</div>
-    );
-  }
+  // 已登录但未加入任何房屋 → 引导建房或加入
+  if (!house) redirect("/onboarding");
 
   const currentPeriod = new Date().toISOString().slice(0, 7);
 
