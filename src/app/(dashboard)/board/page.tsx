@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentHouse } from "@/lib/identity";
+import { getCurrentHouse, getCurrentIdentity } from "@/lib/identity";
 import { BoardClientPage } from "@/components/board/BoardClientPage";
 
 export default async function BoardPage() {
-  const house = await getCurrentHouse();
+  const [house, identity] = await Promise.all([getCurrentHouse(), getCurrentIdentity()]);
   if (!house) return <div className="p-4 text-muted-foreground">未找到房屋，请先运行 seed。</div>;
 
   const [members, announcements, visitors] = await Promise.all([
@@ -34,7 +34,12 @@ export default async function BoardPage() {
     authorName: a.author.user.name,
     authorId: a.authorId,
     createdAt: a.createdAt.toISOString(),
+    updatedAt: a.updatedAt.toISOString(),
     expiresAt: a.expiresAt?.toISOString() ?? null,
+    // 是否可编辑（仅作者）／可管理（作者或房主）—— 由服务端判定，前端只负责隐藏入口
+    canEdit: a.authorId === identity?.memberId,
+    canManage:
+      a.authorId === identity?.memberId || identity?.isOwner === true,
   }));
 
   type VisitorWithHost = (typeof visitors)[number];

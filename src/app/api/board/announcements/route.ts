@@ -27,15 +27,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const ctx = await getCurrentContext();
-    if (!ctx) return NextResponse.json({ message: "未找到房屋" }, { status: 404 });
+    if (!ctx?.currentMember) {
+      return NextResponse.json({ message: "未登录或未加入房屋" }, { status: 401 });
+    }
 
     const parsed = announcementSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ message: "校验失败", errors: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const authorId = body.authorId ?? ctx.members[0]?.id;
-    if (!authorId) return NextResponse.json({ message: "未找到发布人" }, { status: 404 });
+    // 发布人固定为当前登录成员，不接受客户端指定，避免冒名发布
+    const authorId = ctx.currentMember.id;
 
     const ann = await prisma.announcement.create({
       data: {

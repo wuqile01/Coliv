@@ -2,12 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Loader2, Pin, User, Megaphone, DoorOpen } from "lucide-react";
+import {
+  Plus, Loader2, Pin, PinOff, Pencil, Trash2, MoreVertical,
+  User, Megaphone, DoorOpen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +26,12 @@ import { zhCN } from "date-fns/locale";
 
 interface Announcement {
   id: string; title: string; content: string; isPinned: boolean;
-  authorName: string; authorId: string; createdAt: string; expiresAt: string | null;
+  authorName: string; authorId: string; createdAt: string; updatedAt: string;
+  expiresAt: string | null;
+  /** 仅作者可编辑内容 */
+  canEdit: boolean;
+  /** 作者或房主可置顶/删除 */
+  canManage: boolean;
 }
 interface Visitor {
   id: string; visitorName: string; hostName: string; hostMemberId: string;
@@ -40,6 +52,86 @@ export function BoardClientPage({ announcements, visitors, members, houseId }: P
   const [submitting, setSubmitting] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [error, setError] = useState("");
+
+  // 编辑 / 删除
+  const [editing, setEditing] = useState<Announcement | null>(null);
+  const [editPinned, setEditPinned] = useState(false);
+  const [editBusy, setEditBusy] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [deleting, setDeleting] = useState<Announcement | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  /** 打开编辑弹窗，回填当前内容 */
+  function openEdit(ann: Announcement) {
+    setEditing(ann);
+    setEditPinned(ann.isPinned);
+    setEditError("");
+  }
+
+  /** 保存编辑 */
+  async function handleEditSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editing) return;
+    setEditBusy(true);
+    setEditError("");
+
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      title: fd.get("title"),
+      content: fd.get("content"),
+      isPinned: editPinned,
+    };
+
+    try {
+      const res = await fetch(`/api/board/announcements/${editing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEditError(data.message ?? "保存失败");
+        return;
+      }
+      setEditing(null);
+      startTransition(() => router.refresh());
+    } catch {
+      setEditError("网络异常，请重试");
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
+  /** 置顶 / 取消置顶（无需确认，即时生效） */
+  async function handleTogglePin(ann: Announcement) {
+    try {
+      const res = await fetch(`/api/board/announcements/${ann.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPinned: !ann.isPinned }),
+      });
+      if (res.ok) startTransition(() => router.refresh());
+    } catch {
+      // 静默失败，用户可重试
+    }
+  }
+
+  /** 确认删除 */
+  async function handleDelete() {
+    if (!deleting) return;
+    setDeleteBusy(true);
+    try {
+      const res = await fetch(`/api/board/announcements/${deleting.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setDeleting(null);
+        startTransition(() => router.refresh());
+      }
+    } catch {
+      // 静默失败，用户可重试
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
 
   async function handleAnnSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -183,7 +275,9 @@ export function BoardClientPage({ announcements, visitors, members, houseId }: P
               <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                 <Pin className="h-3 w-3" />置顶
               </p>
-              {pinned.map((a) => <AnnCard key={a.id} ann={a} />)}
+              {pinned.map((a) => (
+                <AnnCard key={a.id} ann={a} onEdit={openEdit} onTogglePin={handleTogglePin} onDelete={setDeleting} />
+              ))}
             </div>
           )}
           {normal.length > 0 && (
@@ -191,7 +285,9 @@ export function BoardClientPage({ announcements, visitors, members, houseId }: P
               {pinned.length > 0 && (
                 <p className="text-xs font-semibold text-muted-foreground mt-4">最新公告</p>
               )}
-              {normal.map((a) => <AnnCard key={a.id} ann={a} />)}
+              {normal.map((a) => (
+                <AnnCard key={a.id} ann={a} onEdit={openEdit} onTogglePin={handleTogglePin} onDelete={setDeleting} />
+              ))}
             </div>
           )}
           {announcements.length === 0 && (
@@ -242,24 +338,145 @@ export function BoardClientPage({ announcements, visitors, members, houseId }: P
           )}
         </TabsContent>
       </Tabs>
+
+      {/* 编辑公告 */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>编辑公告</DialogTitle></DialogHeader>
+          {editing && (
+            <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-title">标题 *</Label>
+                <Input
+                  id="edit-title"
+                  name="title"
+                  defaultValue={editing.title}
+                  required
+                  maxLength={50}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-content">内容 *</Label>
+                <Textarea
+                  id="edit-content"
+                  name="content"
+                  defaultValue={editing.content}
+                  required
+                  maxLength={1000}
+                  rows={4}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch id="edit-pin" checked={editPinned} onCheckedChange={setEditPinned} />
+                <Label htmlFor="edit-pin">置顶</Label>
+              </div>
+              {editError && (
+                <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-lg">
+                  {editError}
+                </p>
+              )}
+              <div className="flex justify-end gap-2 pt-1">
+                <Button type="button" variant="outline" onClick={() => setEditing(null)}>
+                  取消
+                </Button>
+                <Button type="submit" disabled={editBusy}>
+                  {editBusy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}保存
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除确认 */}
+      <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>删除公告</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground pt-1">
+            确定删除「{deleting?.title}」吗？此操作不可恢复。
+          </p>
+          <div className="flex justify-end gap-2 pt-3">
+            <Button variant="outline" onClick={() => setDeleting(null)}>取消</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteBusy}>
+              {deleteBusy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}删除
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function AnnCard({ ann }: { ann: Announcement }) {
+/** 单条公告卡片：展示 + 操作菜单（编辑 / 置顶 / 删除） */
+function AnnCard({
+  ann,
+  onEdit,
+  onTogglePin,
+  onDelete,
+}: {
+  ann: Announcement;
+  onEdit: (a: Announcement) => void;
+  onTogglePin: (a: Announcement) => void;
+  onDelete: (a: Announcement) => void;
+}) {
+  // 判断是否被编辑过（留 1 秒容差，避免创建时因数据库精度差异误判）
+  const edited =
+    new Date(ann.updatedAt).getTime() - new Date(ann.createdAt).getTime() > 1000;
+
   return (
     <Card className={ann.isPinned ? "border-primary/30 bg-primary/5" : ""}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm font-bold leading-snug">{ann.title}</CardTitle>
-          {ann.isPinned && (
-            <Badge className="shrink-0 text-[10px] px-1.5 bg-primary/20 text-primary border-0">
-              <Pin className="h-2.5 w-2.5 mr-1" />置顶
-            </Badge>
-          )}
+          <CardTitle className="text-sm font-bold leading-snug flex-1">{ann.title}</CardTitle>
+          <div className="flex items-center gap-1 shrink-0">
+            {ann.isPinned && (
+              <Badge className="text-[10px] px-1.5 bg-primary/20 text-primary border-0">
+                <Pin className="h-2.5 w-2.5 mr-1" />置顶
+              </Badge>
+            )}
+            {ann.canManage && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="h-7 w-7 -mr-1 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted transition-colors"
+                    aria-label="公告操作"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  {ann.canEdit && (
+                    <DropdownMenuItem onClick={() => onEdit(ann)}>
+                      <Pencil className="h-3.5 w-3.5" />编辑
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => onTogglePin(ann)}>
+                    {ann.isPinned ? (
+                      <>
+                        <PinOff className="h-3.5 w-3.5" />取消置顶
+                      </>
+                    ) : (
+                      <>
+                        <Pin className="h-3.5 w-3.5" />置顶
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onDelete(ann)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />删除
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           {ann.authorName} · {formatDistanceToNow(new Date(ann.createdAt), { addSuffix: true, locale: zhCN })}
+          {edited && <span className="ml-1.5 opacity-70">（已编辑）</span>}
         </p>
       </CardHeader>
       <CardContent className="pb-4">
