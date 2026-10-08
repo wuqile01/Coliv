@@ -5,13 +5,12 @@ export default async function BoardPage() {
   const house = await prisma.house.findFirst({ where: { name: "朝阳合租" } });
   if (!house) return <div className="p-4 text-muted-foreground">未找到房屋，请先运行 seed。</div>;
 
-  const members = await prisma.member.findMany({
-    where: { houseId: house.id, leaveDate: null },
-    include: { user: { select: { name: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const [announcements, visitors] = await Promise.all([
+  const [members, announcements, visitors] = await Promise.all([
+    prisma.member.findMany({
+      where: { houseId: house.id, leaveDate: null },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
     prisma.announcement.findMany({
       where: { houseId: house.id },
       include: { author: { include: { user: { select: { name: true } } } } },

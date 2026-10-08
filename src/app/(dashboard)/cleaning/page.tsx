@@ -40,35 +40,36 @@ export default async function CleaningPage() {
     );
   }
 
-  const members = await prisma.member.findMany({
-    where: { houseId: house.id, leaveDate: null },
-    include: { user: { select: { name: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const zones = await prisma.cleaningZone.findMany({
-    where: { houseId: house.id, isActive: true },
-    include: { tasks: { where: { isActive: true } } },
-    orderBy: { sortOrder: "asc" },
-  });
-
-  // 取最近 30 天的分配任务
+  // 取最近 7 天 ~ 未来 30 天的分配任务
   const since = new Date();
   since.setDate(since.getDate() - 7);
   const until = new Date();
   until.setDate(until.getDate() + 30);
 
-  const assignments = await prisma.cleaningAssignment.findMany({
-    where: {
-      zone: { houseId: house.id },
-      dueDate: { gte: since, lte: until },
-    },
-    include: {
-      zone: true,
-      member: { include: { user: { select: { name: true } } } },
-    },
-    orderBy: { dueDate: "asc" },
-  });
+  // 三个查询互不依赖，并行执行可省去两次跨洋往返
+  const [members, zones, assignments] = await Promise.all([
+    prisma.member.findMany({
+      where: { houseId: house.id, leaveDate: null },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.cleaningZone.findMany({
+      where: { houseId: house.id, isActive: true },
+      include: { tasks: { where: { isActive: true } } },
+      orderBy: { sortOrder: "asc" },
+    }),
+    prisma.cleaningAssignment.findMany({
+      where: {
+        zone: { houseId: house.id },
+        dueDate: { gte: since, lte: until },
+      },
+      include: {
+        zone: true,
+        member: { include: { user: { select: { name: true } } } },
+      },
+      orderBy: { dueDate: "asc" },
+    }),
+  ]);
 
   // 序列化（Date → string）传给客户端
   const serialized = assignments.map((a) => ({
