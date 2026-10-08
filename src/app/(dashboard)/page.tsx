@@ -3,6 +3,7 @@ import { ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
+import { getCurrentHouse } from "@/lib/identity";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 
@@ -32,7 +33,7 @@ function parseFeedText(actionType: string, actionData: string | null, actorName:
 }
 
 export default async function DashboardPage() {
-  const house = await prisma.house.findFirst({ where: { name: "朝阳合租" } });
+  const house = await getCurrentHouse();
 
   if (!house) {
     return (

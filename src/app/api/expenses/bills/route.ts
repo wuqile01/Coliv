@@ -1,24 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentContext } from "@/lib/identity";
 import { utilityBillSchema } from "@/lib/validations/expenses";
 import { computeSplit } from "@/lib/split";
 
-const DEMO_HOUSE_NAME = "朝阳合租";
-
-async function getDemoContext() {
-  const house = await prisma.house.findFirst({ where: { name: DEMO_HOUSE_NAME } });
-  if (!house) return null;
-  const members = await prisma.member.findMany({
-    where: { houseId: house.id, leaveDate: null },
-    include: { user: { select: { name: true } } },
-  });
-  return { house, members };
-}
 
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
   const period = sp.get("period");
-  const ctx = await getDemoContext();
+  const ctx = await getCurrentContext();
   if (!ctx) return NextResponse.json({ bills: [] });
 
   const bills = await prisma.utilityBill.findMany({
@@ -36,7 +26,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const ctx = await getDemoContext();
+    const ctx = await getCurrentContext();
     if (!ctx) return NextResponse.json({ message: "未找到房屋" }, { status: 404 });
 
     const parsed = utilityBillSchema.safeParse(body);

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentHouse } from "@/lib/identity";
 
 /**
  * /settings 重定向到房屋主页
@@ -9,7 +10,7 @@ import { prisma } from "@/lib/prisma";
  * 编辑表单在 /houses/[id]/settings，从房屋主页的「房屋设置」按钮进入。
  */
 export default async function SettingsRedirectPage() {
-  const house = await prisma.house.findFirst({ where: { name: "朝阳合租" } });
+  const house = await getCurrentHouse();
   if (!house) {
     return (
       <div className="p-4 text-muted-foreground">未找到房屋数据，请先运行 seed。</div>

@@ -1,71 +1,126 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { SESSION_COOKIE, readSessionToken } from "@/lib/auth-core";
 
 /**
  * 当前登录身份解析
  *
- * 背景：认证（Better Auth）尚未接入，演示数据也没有密码。
- * 目前用 cookie（coliv_uid）记录「当前以谁的身份浏览」，
- * 由登录页的账号选择器写入，头像菜单的「切换账号」清空。
- *
- * 接入真实认证后，只需把 resolveIdentity 改为读取 session 即可，
- * 上层调用方（权限判断、头像菜单）无需改动。
+ * 会话来源：coliv_session cookie（HMAC 签名，见 auth-core.ts）。
+ * 一个用户可以属于多个房屋；houses 列表按加入时间排序，
+ * currentHouse 取第一个（后续可加「切换房屋」）。
  */
-
-/** 演示模式下记录当前身份的 cookie 名 */
-export const IDENTITY_COOKIE = "coliv_uid";
 
 export type Identity = {
   userId: string;
   name: string;
   email: string;
   avatarUrl: string | null;
+  /** 当前操作的房屋 */
   houseId: string | null;
   memberId: string | null;
-  /** 是否为该房屋的房主 —— 只有房主能改房屋设置、管理成员 */
+  /** 是否为当前房屋的房主 */
   isOwner: boolean;
+  /** 用户加入的所有房屋（含角色），用于引导页与切换 */
+  houses: { houseId: string; houseName: string; memberId: string; role: string }[];
 };
 
-const DEMO_USER_EMAIL = process.env.DEMO_USER_EMAIL ?? "zhang@test.com";
-
-/**
- * 解析当前身份：
- * 1. 优先读 cookie 中指定的 userId（「切换账号」后写入）
- * 2. 退回 DEMO_USER_EMAIL 指定的用户
- * 3. 再退回第一个用户，保证页面不崩
- */
-export async function getCurrentIdentity(): Promise<Identity | null> {
+/** 读取当前会话对应的 userId；未登录返回 null */
+export async function getSessionUserId(): Promise<string | null> {
   const cookieStore = await cookies();
-  const cookieUserId = cookieStore.get(IDENTITY_COOKIE)?.value;
+  return readSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
+}
 
-  const user =
-    (cookieUserId
-      ? await prisma.user.findUnique({ where: { id: cookieUserId } })
-      : null) ??
-    (await prisma.user.findUnique({ where: { email: DEMO_USER_EMAIL } })) ??
-    (await prisma.user.findFirst({ orderBy: { createdAt: "asc" } }));
+/** 当前身份；未登录或用户不存在返回 null */
+export async function getCurrentIdentity(): Promise<Identity | null> {
+  const userId = await getSessionUserId();
+  if (!userId) return null;
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      members: {
+        where: { leaveDate: null },
+        include: { house: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
   if (!user) return null;
 
-  const member = await prisma.member.findFirst({
-    where: { userId: user.id, leaveDate: null },
-    orderBy: { createdAt: "asc" },
-  });
+  const houses = user.members.map((m) => ({
+    houseId: m.houseId,
+    houseName: m.house.name,
+    memberId: m.id,
+    role: m.role,
+  }));
+
+  // 优先选房主身份所在的房屋；否则取最早加入的
+  const primary = user.members.find((m) => m.role === "owner") ?? user.members[0];
 
   return {
     userId: user.id,
     name: user.name,
     email: user.email,
     avatarUrl: user.avatarUrl ?? null,
-    houseId: member?.houseId ?? null,
-    memberId: member?.id ?? null,
-    isOwner: member?.role === "owner",
+    houseId: primary?.houseId ?? null,
+    memberId: primary?.id ?? null,
+    isOwner: primary?.role === "owner",
+    houses,
   };
 }
 
-/** 取当前用户所属房屋；找不到时返回 null */
+/**
+ * 页面用：要求已登录，否则跳转登录页。
+ * 未加入任何房屋的情况不在这里拦截 —— 由 (dashboard)/layout 引导到 /onboarding。
+ */
+export async function requireIdentity(): Promise<Identity> {
+  const identity = await getCurrentIdentity();
+  if (!identity) redirect("/signin");
+  return identity;
+}
+
+/** 当前房屋；没有房屋返回 null */
 export async function getCurrentHouse() {
   const identity = await getCurrentIdentity();
   if (!identity?.houseId) return null;
   return prisma.house.findUnique({ where: { id: identity.houseId } });
+}
+
+/**
+ * API 用：当前房屋 + 在住成员 + 当前成员。
+ * 未登录或没有房屋时返回 null，调用方应回 401/404。
+ */
+export async function getCurrentContext() {
+  const identity = await getCurrentIdentity();
+  if (!identity?.houseId || !identity.memberId) return null;
+
+  const [house, members] = await Promise.all([
+    prisma.house.findUnique({ where: { id: identity.houseId } }),
+    prisma.member.findMany({
+      where: { houseId: identity.houseId, leaveDate: null },
+      include: { user: { select: { name: true, avatarUrl: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+  if (!house) return null;
+
+  const currentMember = members.find((m) => m.id === identity.memberId) ?? null;
+  return { identity, house, members, currentMember };
+}
+
+/**
+ * 校验「当前用户是否为指定房屋的房主」。
+ * API 用：返回 null 表示通过，否则返回错误响应信息。
+ */
+export async function checkIsOwner(
+  houseId: string
+): Promise<{ status: number; message: string } | null> {
+  const identity = await getCurrentIdentity();
+  if (!identity) return { status: 401, message: "未登录" };
+  const isMemberOfHouse = identity.houses.some((h) => h.houseId === houseId);
+  if (!isMemberOfHouse) return { status: 403, message: "你不是该房屋的成员" };
+  const role = identity.houses.find((h) => h.houseId === houseId)?.role;
+  if (role !== "owner") return { status: 403, message: "仅房主可执行此操作" };
+  return null;
 }

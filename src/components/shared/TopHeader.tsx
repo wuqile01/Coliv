@@ -23,7 +23,7 @@ export type HeaderUser = {
  * 因为演示模式下需要保证在任何环境下都能正常展开。
  */
 export function TopHeader({
-  houseName = "朝阳合租",
+  houseName = "CoLiv",
   user,
 }: {
   houseName?: string;
@@ -55,15 +55,10 @@ export function TopHeader({
 
   async function handleSignOut() {
     setOpen(false);
-    // 演示模式：清掉身份 cookie 即视为退出，回到账号选择页
     try {
-      if (user) {
-        await fetch("/api/demo-accounts", { method: "DELETE" });
-      }
-      const { signOut } = await import("@/lib/auth-client");
-      await signOut();
+      await fetch("/api/auth/signout", { method: "POST" });
     } catch {
-      // 认证未启用时忽略
+      // 忽略网络错误，仍然跳转
     }
     router.push("/signin");
     router.refresh();

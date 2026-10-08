@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentHouse } from "@/lib/identity";
 import { groupByUrgency } from "@/lib/urgency";
 import { CleaningClientPage } from "@/components/cleaning/CleaningClientPage";
 
@@ -30,7 +31,7 @@ function getIcon(name: string, icon: string | null) {
 }
 
 export default async function CleaningPage() {
-  const house = await prisma.house.findFirst({ where: { name: "朝阳合租" } });
+  const house = await getCurrentHouse();
   if (!house) {
     return (
       <div className="space-y-4">

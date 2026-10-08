@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cleaningZoneSchema } from "@/lib/validations/cleaning";
+import { getCurrentIdentity } from "@/lib/identity";
 
-const DEMO_HOUSE_ID_KEY = "朝阳合租";
-
-async function getDemoHouseId() {
-  const house = await prisma.house.findFirst({ where: { name: DEMO_HOUSE_ID_KEY } });
-  return house?.id ?? null;
+async function getCurrentHouseId() {
+  const identity = await getCurrentIdentity();
+  return identity?.houseId ?? null;
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const houseId = searchParams.get("houseId");
 
-  const id = houseId ?? (await getDemoHouseId());
+  const id = houseId ?? (await getCurrentHouseId());
   if (!id) return NextResponse.json({ zones: [] });
 
   const zones = await prisma.cleaningZone.findMany({
@@ -34,7 +33,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { houseId, ...rest } = body;
 
-    const id = houseId ?? (await getDemoHouseId());
+    const id = houseId ?? (await getCurrentHouseId());
     if (!id) return NextResponse.json({ message: "未找到房屋" }, { status: 404 });
 
     const parsed = cleaningZoneSchema.safeParse(rest);

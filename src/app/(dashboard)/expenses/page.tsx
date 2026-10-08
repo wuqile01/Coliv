@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentHouse } from "@/lib/identity";
 import { computeOptimalSettlement } from "@/lib/split";
 import { ExpensesClientPage } from "@/components/expenses/ExpensesClientPage";
 
@@ -11,7 +12,7 @@ const BILL_TYPE_ICONS: Record<string, string> = {
 };
 
 export default async function ExpensesPage() {
-  const house = await prisma.house.findFirst({ where: { name: "朝阳合租" } });
+  const house = await getCurrentHouse();
   if (!house) return <div className="p-4 text-muted-foreground">未找到房屋，请先运行 seed。</div>;
 
   const currentPeriod = new Date().toISOString().slice(0, 7); // YYYY-MM

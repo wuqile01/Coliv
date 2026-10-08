@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { signUp } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,16 +31,27 @@ export default function SignUpPage() {
       return;
     }
 
-    const result = await signUp.email({ name, email, password });
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
 
-    if (result.error) {
-      setError(result.error.message ?? "注册失败，该邮箱可能已被使用");
+      if (!res.ok) {
+        setError(data.message ?? "注册失败");
+        setLoading(false);
+        return;
+      }
+
+      // 新注册用户还没有房屋 → 引导建房或加入
+      router.push("/onboarding");
+      router.refresh();
+    } catch {
+      setError("网络异常，请稍后重试");
       setLoading(false);
-      return;
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
@@ -61,24 +71,52 @@ export default function SignUpPage() {
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">邮箱</Label>
-            <Input id="email" name="email" type="email" placeholder="you@example.com" required autoComplete="email" />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              autoComplete="email"
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">密码</Label>
-            <Input id="password" name="password" type="password" required autoComplete="new-password" minLength={8} placeholder="至少 8 位" />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="new-password"
+              minLength={6}
+              placeholder="至少 6 位"
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="confirm">确认密码</Label>
-            <Input id="confirm" name="confirm" type="password" required autoComplete="new-password" minLength={8} />
+            <Input
+              id="confirm"
+              name="confirm"
+              type="password"
+              required
+              autoComplete="new-password"
+              minLength={6}
+            />
           </div>
-          {error && <p className="text-sm text-destructive rounded-lg bg-destructive/10 px-3 py-2">{error}</p>}
+          {error && (
+            <p className="text-sm text-destructive rounded-lg bg-destructive/10 px-3 py-2">
+              {error}
+            </p>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}注册
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
           已有账号？{" "}
-          <Link href="/signin" className="text-primary hover:underline font-medium">登录</Link>
+          <Link href="/signin" className="text-primary hover:underline font-medium">
+            登录
+          </Link>
         </p>
       </CardContent>
     </Card>

@@ -23,63 +23,21 @@ model User {
   name          String
   emailVerified Boolean  @default(false)
   avatarUrl     String?
+  /// scrypt 哈希后的登录密码；空表示该账号不可登录
+  passwordHash  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  members  Member[]
-  sessions Session[]
-  accounts Account[]
+  members Member[]
 }
 
 // ──────────────────────────────────
-// Better Auth 认证表
 // ──────────────────────────────────
-
-model Session {
-  id        String   @id @default(cuid())
-  expiresAt DateTime
-  token     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  ipAddress String?
-  userAgent String?
-  userId    String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model Account {
-  id                    String    @id @default(cuid())
-  accountId             String
-  providerId            String
-  userId                String
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model Verification {
-  id         String   @id @default(cuid())
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([identifier])
-}
+// 认证
+// ──────────────────────────────────
+// 采用轻量方案：User.passwordHash（scrypt）+ 签名 Cookie，
+// 不再使用 Better Auth 的 Session / Account / Verification 表。
+// 迁移后这三张表的数据可删除。
 
 model House {
   id                  String   @id @default(cuid())

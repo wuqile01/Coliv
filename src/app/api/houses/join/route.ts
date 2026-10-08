@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-
-const DEMO_USER_EMAIL = "zhang@test.com";
+import { getCurrentIdentity } from "@/lib/identity";
 
 const joinSchema = z.object({
   inviteCode: z.string().trim().min(4, "邀请码格式不正确").max(16, "邀请码格式不正确"),
@@ -29,13 +28,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "邀请码无效或已失效" }, { status: 404 });
     }
 
-    // 认证暂时跳过：Phase 2 接入后从 session 获取用户。
-    const user = await prisma.user.findUnique({ where: { email: DEMO_USER_EMAIL } });
+    // 从登录会话取当前用户
+    const identity = await getCurrentIdentity();
+    if (!identity) {
+      return NextResponse.json({ message: "请先登录" }, { status: 401 });
+    }
+    const user = await prisma.user.findUnique({ where: { id: identity.userId } });
     if (!user) {
-      return NextResponse.json(
-        { message: "演示用户不存在，请先执行 npm run db:seed" },
-        { status: 409 }
-      );
+      return NextResponse.json({ message: "账号不存在" }, { status: 401 });
     }
 
     const existing = await prisma.member.findUnique({

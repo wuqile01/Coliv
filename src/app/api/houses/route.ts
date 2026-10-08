@@ -1,9 +1,8 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentIdentity } from "@/lib/identity";
 import { createHouseSchema } from "@/lib/validations/house";
-
-const DEMO_USER_EMAIL = "zhang@test.com";
 
 async function createUniqueInviteCode() {
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -37,13 +36,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // 认证暂时跳过：Phase 2 接入后从 session 获取用户。
-    const user = await prisma.user.findUnique({ where: { email: DEMO_USER_EMAIL } });
+    // 从登录会话取当前用户
+    const identity = await getCurrentIdentity();
+    if (!identity) {
+      return NextResponse.json({ message: "请先登录" }, { status: 401 });
+    }
+    const user = await prisma.user.findUnique({ where: { id: identity.userId } });
     if (!user) {
-      return NextResponse.json(
-        { message: "演示用户不存在，请先执行 npm run db:seed" },
-        { status: 409 }
-      );
+      return NextResponse.json({ message: "账号不存在" }, { status: 401 });
     }
 
     const inviteCode = await createUniqueInviteCode();

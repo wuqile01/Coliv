@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-
-const DEMO_HOUSE_NAME = "朝阳合租";
+import { getCurrentContext } from "@/lib/identity";
 
 const createRepairSchema = z.object({
   title: z.string().trim().min(1, "标题不能为空").max(50),
@@ -11,20 +10,11 @@ const createRepairSchema = z.object({
   relatedItemId: z.string().cuid().optional(),
 });
 
-async function getDemoContext() {
-  const house = await prisma.house.findFirst({ where: { name: DEMO_HOUSE_NAME } });
-  if (!house) return null;
-  const members = await prisma.member.findMany({
-    where: { houseId: house.id, leaveDate: null },
-    include: { user: { select: { name: true } } },
-  });
-  return { house, members };
-}
 
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
   const status = sp.get("status");
-  const ctx = await getDemoContext();
+  const ctx = await getCurrentContext();
   if (!ctx) return NextResponse.json({ orders: [] });
 
   const orders = await prisma.repairOrder.findMany({
@@ -42,7 +32,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const ctx = await getDemoContext();
+    const ctx = await getCurrentContext();
     if (!ctx) return NextResponse.json({ message: "未找到房屋" }, { status: 404 });
 
     const parsed = createRepairSchema.safeParse(body);

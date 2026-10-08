@@ -1,7 +1,19 @@
 import { PrismaClient } from "@prisma/client";
-import { randomBytes } from "crypto";
+import { randomBytes, scrypt as _scrypt } from "crypto";
+import { promisify } from "util";
 
 const prisma = new PrismaClient();
+const scrypt = promisify(_scrypt) as (p: string, s: string, k: number) => Promise<Buffer>;
+
+/** 与 src/lib/auth-core.ts 保持一致：scrypt$<salt>$<hash> */
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const derived = await scrypt(password, salt, 64);
+  return `scrypt$${salt}$${derived.toString("hex")}`;
+}
+
+/** 演示账号统一密码 */
+const DEMO_PASSWORD = "coliv1234";
 
 function generateInviteCode(): string {
   return randomBytes(4).toString("hex").toUpperCase(); // 8位大写
@@ -31,12 +43,14 @@ async function main() {
   await prisma.house.deleteMany();
   await prisma.user.deleteMany();
 
-  // 创建用户
+  // 创建用户（密码与 src/lib/auth-core.ts 的 scrypt 格式一致）
+  const demoHash = await hashPassword(DEMO_PASSWORD);
   const [zhang, li, wang] = await Promise.all([
-    prisma.user.create({ data: { email: "zhang@test.com", name: "张三" } }),
-    prisma.user.create({ data: { email: "li@test.com", name: "李四" } }),
-    prisma.user.create({ data: { email: "wang@test.com", name: "王五" } }),
+    prisma.user.create({ data: { email: "zhang@test.com", name: "张三", passwordHash: demoHash } }),
+    prisma.user.create({ data: { email: "li@test.com", name: "李四", passwordHash: demoHash } }),
+    prisma.user.create({ data: { email: "wang@test.com", name: "王五", passwordHash: demoHash } }),
   ]);
+  console.log(`👤 演示账号密码统一为: ${DEMO_PASSWORD}`);
 
   // 创建房屋
   const house = await prisma.house.create({

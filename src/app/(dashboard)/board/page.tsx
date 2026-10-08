@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentHouse } from "@/lib/identity";
 import { BoardClientPage } from "@/components/board/BoardClientPage";
 
 export default async function BoardPage() {
-  const house = await prisma.house.findFirst({ where: { name: "朝阳合租" } });
+  const house = await getCurrentHouse();
   if (!house) return <div className="p-4 text-muted-foreground">未找到房屋，请先运行 seed。</div>;
 
   const [members, announcements, visitors] = await Promise.all([

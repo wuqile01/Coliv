@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentIdentity } from "@/lib/identity";
 import { addDays, addWeeks, addMonths } from "date-fns";
 
-const DEMO_HOUSE_NAME = "朝阳合租";
-
-async function getDemoHouseId() {
-  const h = await prisma.house.findFirst({ where: { name: DEMO_HOUSE_NAME } });
-  return h?.id ?? null;
+async function getCurrentHouseId() {
+  const identity = await getCurrentIdentity();
+  return identity?.houseId ?? null;
 }
 
 /** 根据频率计算下次到期日 */
@@ -22,7 +21,7 @@ function nextDueDate(from: Date, frequency: string): Date {
 /** GET /api/cleaning/assignments?houseId=&memberId=&status= */
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
-  const houseId = sp.get("houseId") ?? (await getDemoHouseId());
+  const houseId = sp.get("houseId") ?? (await getCurrentHouseId());
   const memberId = sp.get("memberId");
   const status = sp.get("status");
 
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { houseId: rawHouseId } = (await request.json().catch(() => ({}))) as { houseId?: string };
-    const houseId = rawHouseId ?? (await getDemoHouseId());
+    const houseId = rawHouseId ?? (await getCurrentHouseId());
     if (!houseId) return NextResponse.json({ message: "未找到房屋" }, { status: 404 });
 
     const zones = await prisma.cleaningZone.findMany({

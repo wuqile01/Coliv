@@ -1,27 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentContext } from "@/lib/identity";
 import { sharedItemSchema } from "@/lib/validations/items";
 import { computeSplit } from "@/lib/split";
 
-const DEMO_HOUSE_NAME = "朝阳合租";
-
-async function getDemoContext() {
-  const house = await prisma.house.findFirst({ where: { name: DEMO_HOUSE_NAME } });
-  if (!house) return null;
-  const members = await prisma.member.findMany({
-    where: { houseId: house.id, leaveDate: null },
-    include: { user: { select: { name: true } } },
-  });
-  const demoMember = members[0];
-  return { house, members, demoMember };
-}
 
 export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
   const houseId = sp.get("houseId");
   const type = sp.get("type"); // consumable | durable
 
-  const ctx = await getDemoContext();
+  const ctx = await getCurrentContext();
   if (!ctx) return NextResponse.json({ items: [] });
   const id = houseId ?? ctx.house.id;
 
@@ -42,7 +31,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { houseId: rawHouseId, ...rest } = body;
 
-    const ctx = await getDemoContext();
+    const ctx = await getCurrentContext();
     if (!ctx) return NextResponse.json({ message: "未找到房屋" }, { status: 404 });
     const houseId = rawHouseId ?? ctx.house.id;
 
@@ -54,7 +43,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const purchaserId = body.purchaserId ?? ctx.demoMember?.id;
+    const purchaserId = body.purchaserId ?? ctx.currentMember?.id;
     if (!purchaserId) return NextResponse.json({ message: "未找到采购人" }, { status: 404 });
 
     const memberIds = ctx.members.map((m) => m.id);

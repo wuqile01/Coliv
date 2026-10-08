@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-
-const DEMO_HOUSE_NAME = "朝阳合租";
+import { getCurrentContext } from "@/lib/identity";
 
 const announcementSchema = z.object({
   title: z.string().trim().min(1, "标题不能为空").max(50),
@@ -11,15 +10,9 @@ const announcementSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 });
 
-async function getDemoContext() {
-  const house = await prisma.house.findFirst({ where: { name: DEMO_HOUSE_NAME } });
-  if (!house) return null;
-  const members = await prisma.member.findMany({ where: { houseId: house.id, leaveDate: null } });
-  return { house, members };
-}
 
 export async function GET() {
-  const ctx = await getDemoContext();
+  const ctx = await getCurrentContext();
   if (!ctx) return NextResponse.json({ announcements: [] });
 
   const announcements = await prisma.announcement.findMany({
@@ -33,7 +26,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const ctx = await getDemoContext();
+    const ctx = await getCurrentContext();
     if (!ctx) return NextResponse.json({ message: "未找到房屋" }, { status: 404 });
 
     const parsed = announcementSchema.safeParse(body);
