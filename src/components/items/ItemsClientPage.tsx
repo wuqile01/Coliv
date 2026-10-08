@@ -37,7 +37,7 @@ interface ItemsClientPageProps {
   houseId: string;
 }
 
-export function ItemsClientPage({ items, members, houseId }: ItemsClientPageProps) {
+export function ItemsClientPage({ items, houseId }: ItemsClientPageProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);

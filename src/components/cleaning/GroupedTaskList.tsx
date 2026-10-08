@@ -90,7 +90,7 @@ export function GroupedTaskList<T extends { id: string; dueDate: Date | string; 
   function toggle(group: UrgencyGroup) {
     setCollapsed((prev) => {
       const next = new Set(prev);
-      next.has(group) ? next.delete(group) : next.add(group);
+      if (next.has(group)) { next.delete(group); } else { next.add(group); }
       return next;
     });
   }

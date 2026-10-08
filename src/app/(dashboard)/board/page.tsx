@@ -25,7 +25,8 @@ export default async function BoardPage() {
     }),
   ]);
 
-  const serializedAnn = announcements.map((a: any) => ({
+  type AnnWithAuthor = (typeof announcements)[number];
+  const serializedAnn = announcements.map((a: AnnWithAuthor) => ({
     id: a.id,
     title: a.title,
     content: a.content,
@@ -36,7 +37,8 @@ export default async function BoardPage() {
     expiresAt: a.expiresAt?.toISOString() ?? null,
   }));
 
-  const serializedVisitors = visitors.map((v: any) => ({
+  type VisitorWithHost = (typeof visitors)[number];
+  const serializedVisitors = visitors.map((v: VisitorWithHost) => ({
     id: v.id,
     visitorName: v.visitorName,
     hostName: v.hostMember.user.name,

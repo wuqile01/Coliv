@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { GROUP_CONFIG } from "@/lib/urgency";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 
@@ -46,7 +45,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
   settled: { label: "已结算", variant: "secondary" },
 };
 
-export function RepairsClientPage({ orders, members, houseId }: RepairsClientPageProps) {
+export function RepairsClientPage({ orders, houseId }: RepairsClientPageProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
