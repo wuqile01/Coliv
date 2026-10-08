@@ -639,3 +639,56 @@ User ──< Member >── House
 |---|------|------|------|------------|------|
 | X1 | GET | `/api/houses/:houseId/stats` | 房屋统计概览 | `?period=` | `{total_expense, cleaning_completion_rate, repair_count, per_member: []}` |
 | X2 | GET | `/api/houses/:houseId/export` | 导出账单 CSV | `?period=&format=csv` | `CSV file` |
+
+---
+
+## 附录：认证实现现状（2026-10 更新）
+
+> 上文设计文档中的 Supabase Auth 方案未采用，实际实现如下。
+> Prisma + PostgreSQL（Supabase 托管）+ 自建轻量认证。
+
+### 为什么不用现成的认证库
+
+初版接入了 Better Auth，但只接了一半：`Session`/`Account`/`Verification`
+三张表已建、provider 却误配成 `sqlite`，且应用读取身份走的是另一个
+「演示 cookie」链路 —— 注册能成功，但应用不认新用户。维护两套半成品认证
+比自建更危险，因此改为零依赖的轻量方案。
+
+### 实现
+
+| 关注点 | 方案 | 位置 |
+|--------|------|------|
+| 密码存储 | scrypt（N=16384, r=8, p=1, dklen=64），格式 `scrypt$<salt>$<hash>` | `src/lib/auth-core.ts` |
+| 密码校验 | `timingSafeEqual` 恒定时间比对 | 同上 |
+| 会话 | 无状态 token：`<userId>.<exp>.<HMAC-SHA256>`，30 天 | 同上 |
+| Cookie | `coliv_session`，httpOnly + sameSite=lax + 生产环境 secure | `api/auth/*` |
+| 限流 | 进程内固定窗口，登录/注册各 10 次/分钟/IP | `src/lib/rate-limit.ts` |
+| 身份解析 | 读会话 → 查 User + Member，支持一人多房屋 | `src/lib/identity.ts` |
+| 权限 | 页面用 `checkIsOwner`，API 用 `getCurrentContext` | 同上 |
+
+### 关键设计：Edge 与 Node 的边界
+
+中间件跑在 **Edge Runtime**，`process.env` 会被**构建时内联**，且
+**不支持 `node:crypto` 的 scrypt**。因此：
+
+- `src/lib/session-shared.ts` —— 零依赖，只放常量与「外形校验」
+  （三段式 + 未过期），中间件只引用它
+- `src/lib/auth-core.ts` —— 含 `node:crypto`，仅供 Node Runtime
+
+中间件只做粗筛；**真正的验签与用户校验在 dashboard layout（Node）完成**。
+这条边界一旦打破，会出现「登录成功却被弹回登录页」的死循环，
+且 `tsc --noEmit` 无法发现 —— 必须靠真实 `next build` 验证。
+
+### 环境变量
+
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `DATABASE_URL` | ✅ | PostgreSQL 连接串 |
+| `AUTH_SECRET` | 生产必填 | 会话签名密钥；缺失时用默认值并告警 |
+| `NEXT_PUBLIC_APP_URL` | 建议 | 应用对外地址 |
+
+### 已知限制
+
+- 限流是**进程内**的：多实例部署下各实例独立计数，应换 Redis
+- 无邮箱验证、无找回密码
+- 头像以 base64 存库（上限 600KB），生产应改为对象存储
