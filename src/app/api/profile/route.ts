@@ -31,14 +31,22 @@ export async function PATCH(request: Request) {
 
   if (body.avatarUrl === null || typeof body.avatarUrl === "string") {
     const url = body.avatarUrl as string | null;
-    // 只接受 http(s) 链接或站内相对路径，避免 javascript: 等协议
     if (url !== null && url !== "") {
-      const ok = url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/");
-      if (!ok) {
-        return NextResponse.json({ error: "头像地址无效" }, { status: 400 });
+      if (url.length > 600000) {
+        return NextResponse.json({ error: "头像数据过大" }, { status: 400 });
       }
-      if (url.length > 500) {
-        return NextResponse.json({ error: "头像地址过长" }, { status: 400 });
+      // 允许四种形式：
+      //   http(s):// 外链、/ 站内路径、data:image 上传图、纯 emoji 头像
+      const isImageUrl =
+        url.startsWith("http://") ||
+        url.startsWith("https://") ||
+        url.startsWith("/") ||
+        url.startsWith("data:image/");
+      // emoji 头像：不含协议分隔符且长度很短
+      const isEmoji = !url.includes(":") && !url.includes("/") && [...url].length <= 4;
+
+      if (!isImageUrl && !isEmoji) {
+        return NextResponse.json({ error: "头像地址无效" }, { status: 400 });
       }
       data.avatarUrl = url;
     } else {
